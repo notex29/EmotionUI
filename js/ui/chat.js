@@ -222,6 +222,8 @@ function paint(log, char, chat) {
   const pName = persona?.name || "User";
   const cName = char.shortName || char.name;
 
+  const lastAiMsgId = chat.messages.filter((x) => x.role !== "user").pop()?.id;
+
   log.innerHTML = chat.messages.map((m) => {
     const isUser = m.role === "user";
     const who = isUser ? esc(pName) : esc(char.name);
@@ -236,7 +238,7 @@ function paint(log, char, chat) {
       : (char.avatar ? `<img class="av" src="${char.avatar}" alt="" />` : `<div class="av" aria-hidden="true">${esc(char.name.slice(0, 1))}</div>`);
       
     let swipeHtml = "";
-    if (!isUser) {
+    if (!isUser && m.id === lastAiMsgId) {
       if (!m.swipes) m.swipes = [m.content || ""];
       const idx = m.activeSwipe || 0;
       const isLastMsg = m.id === chat.messages[chat.messages.length - 1].id;
@@ -350,18 +352,17 @@ function paint(log, char, chat) {
       } else if (act === "branch") {
         const idx = chat.messages.findIndex(x => x.id === msg.id);
         if (idx >= 0) {
-          const newChar = JSON.parse(JSON.stringify(char));
-          newChar.id = uid("char");
-          newChar.name = char.name + " (Branch)";
-          newChar.createdAt = Date.now();
-          newChar.updatedAt = Date.now();
-          await store.saveCharacter(newChar);
-          
-          const newChat = { id: newChar.id, messages: chat.messages.slice(0, idx + 1) };
+          const newChatId = (await import("../core/utils.js")).uid("chat");
+          const newChat = { 
+            id: newChatId, 
+            charId: char.id, 
+            messages: JSON.parse(JSON.stringify(chat.messages.slice(0, idx + 1))),
+            updatedAt: Date.now()
+          };
           await store.saveChat(newChat);
           
-          const go = (await import("../main.js")).go; // Grab the go router
-          go.chat(newChar.id);
+          const freshChat = await store.getChat(char.id, newChatId);
+          paint(log, char, freshChat);
           toast("Branched to new chat.", "ok");
         }
       } else if (act === "edit") {
