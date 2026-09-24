@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EmotionUI</title>
+    <link rel="icon" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/base.css?v=6">
+    <link rel="stylesheet" href="css/layout.css?v=6">
+    <link rel="stylesheet" href="css/components.css?v=6">
+    <link rel="stylesheet" href="css/chat.css?v=6">
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-top">
+                <div class="brand">
+                    <span id="brand-mark" class="brand-mark"></span> EmotionUI
+                </div>
+                <button id="btn-collapse-side" class="icon-btn" aria-label="Close sidebar"></button>
+            </div>
+            
+            <div class="side-nav">
+                <button class="nav-item is-active" data-view="home" aria-current="page">
+                    <span class="nav-ico" data-icon="home"></span> <span class="nav-txt">Characters</span>
+                </button>
+                <button class="nav-item" data-view="create">
+                    <span class="nav-ico" data-icon="plus"></span> <span class="nav-txt">Create</span>
+                </button>
+                <button class="nav-item" data-view="personas">
+                    <span class="nav-ico" data-icon="user"></span> <span class="nav-txt">Personas</span>
+                </button>
+                <button class="nav-item" data-view="settings">
+                    <span class="nav-ico" data-icon="gear"></span> <span class="nav-txt">Settings</span>
+                </button>
+                <button class="nav-item" id="btn-install-app" style="display: none; margin-top: 8px; border-top: 1px solid var(--line); border-radius: 0; padding-top: 14px;">
+                    <span class="nav-ico" data-icon="download"></span> <span class="nav-txt">Install App</span>
+                </button>
+                <div class="sidebar-chars" id="sidebar-chars"></div>
+            </div>
+        </div>
+
+        <div id="sidebar-scrim" class="scrim" hidden></div>
+
+        <!-- Main Column -->
+        <div class="main-col">
+            <!-- Topbar -->
+            <div class="topbar">
+                <button id="btn-open-side" class="icon-btn" aria-label="Open sidebar"></button>
+                <h1 id="topbar-title" class="topbar-title">Characters</h1>
+                <div class="topbar-actions">
+                    <button id="btn-chat-menu" class="icon-btn" hidden aria-label="Chat menu"></button>
+                </div>
+            </div>
+
+            <!-- Main content area -->
+            <div id="main-view" class="main-view"></div>
+        </div>
+        
+        <!-- Right Sidebar for Settings -->
+        <div id="right-scrim" class="scrim" hidden style="z-index: 65;"></div>
+        <div id="right-sidebar" class="right-sidebar" hidden inert></div>
+    </div>
+    
+    <!-- Roots for dynamic UI elements -->
+    <div id="modal-root"></div>
+    <div id="toast-root" class="toast-root"></div>
+    <div id="sr-live" class="sr-only" aria-live="polite"></div>
+
+    <!-- Hidden Elements for functional parts -->
+    <div style="display: none;">
+        <button id="btn-export">Export</button>
+        <button id="btn-import">Import</button>
+        <input type="file" id="import-file" accept=".json">
+    </div>
+
+    <!-- EmotionUI Core App -->
+    <script src="js/core/marked.min.js"></script>
+    <script type="module" src="js/main.js?v=6"></script>
+</body>
+</html>
