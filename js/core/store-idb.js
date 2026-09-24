@@ -90,7 +90,7 @@ export function defaultGlobal() {
     baseUrl: "", apiKey: "", model: "",
     temperature: 0.75, top_p: 0.9,
     presence_penalty: 0.2, frequency_penalty: 0.3,
-    max_tokens: 800, extraStop: [], updatedAt: Date.now(),
+    max_tokens: 800, history_messages: 10, extraStop: [], updatedAt: Date.now(),
   };
 }
 

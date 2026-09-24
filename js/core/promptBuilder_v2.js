@@ -4,8 +4,8 @@ import { applyFormattingPreset, FORMATTING_PRESETS } from "./presets.js";
 
 // Builds the exact request shape from the spec:
 // system directives + character card + persona + scenario + injected memory,
-// then last <=10 user/assistant turns, then author's note, then new user msg.
-export function buildMessages({ char, persona, memory, history, newUserText }) {
+// then last N user/assistant turns, then author's note, then new user msg.
+export function buildMessages({ char, persona, memory, history, newUserText, endpoint }) {
   const personaName = persona?.name || "User";
   const charName = char.shortName || char.name || "Character";
   const systems = [];
@@ -28,7 +28,10 @@ export function buildMessages({ char, persona, memory, history, newUserText }) {
     if (lore) systems.push({ role: "system", content: `### WORLD INFO / LOREBOOK\n${lore}` });
   }
 
-  const convo = [...(history || []).filter((m) => m.role === "user" || m.role === "assistant")].slice(-10).map((m) => ({ role: m.role, content: m.content || (m.swipes ? m.swipes[m.activeSwipe || 0] : "") }));
+  const histLimit = endpoint?.history_messages ?? 10;
+  let convo = [...(history || [])].filter((m) => m.role === "user" || m.role === "assistant").map((m) => ({ role: m.role, content: m.content || (m.swipes ? m.swipes[m.activeSwipe || 0] : "") }));
+  if (histLimit > 0) convo = convo.slice(-histLimit);
+  
   const msgs = [...systems, ...convo];
   if (char.postHistoryInstructions?.trim()) msgs.push({ role: "system", content: char.postHistoryInstructions.trim() });
   if (newUserText) msgs.push({ role: "user", content: newUserText });
@@ -47,7 +50,7 @@ export function buildBody({ char, persona, memory, history, newUserText, endpoin
     "<|eot_id|>", "<|end_of_text|>",
   ])].slice(0, 4);
   
-  const rawMsgs = buildMessages({ char, persona, memory, history, newUserText });
+  const rawMsgs = buildMessages({ char, persona, memory, history, newUserText, endpoint });
   const formatted = applyFormattingPreset(rawMsgs, endpoint.promptPreset, endpoint.customPreset);
   
   return {

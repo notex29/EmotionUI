@@ -10,6 +10,7 @@ export function resolveEndpoint(charCfg, globalCfg) {
     presence_penalty: pick(charCfg?.presence_penalty, globalCfg.presence_penalty, 0.2),
     frequency_penalty: pick(charCfg?.frequency_penalty, globalCfg.frequency_penalty, 0.3),
     max_tokens: pick(charCfg?.max_tokens, globalCfg.max_tokens, 800),
+    history_messages: pick(charCfg?.history_messages, globalCfg.history_messages, 10),
     promptPreset: charCfg?.promptPreset || globalCfg.promptPreset || "default",
     customPreset: charCfg?.customPreset || globalCfg.customPreset || {},
     extraStop: [...(globalCfg.extraStop || []), ...(charCfg?.extraStop || [])],

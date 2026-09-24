@@ -47,6 +47,7 @@ export function renderSettings(main, opts = {}) {
     </div>
     <div class="row2">
       <div class="field"><label for="s-maxt">Max tokens</label><input id="s-maxt" type="number" step="1" min="1" max="32000" value="${esc(g.max_tokens)}" /></div>
+      <div class="field"><label for="s-hist">History msgs limit (0 = unlimited)</label><input id="s-hist" type="number" step="1" min="0" max="1000" value="${esc(g.history_messages ?? 10)}" /></div>
     </div>
     <div class="row2">
       <div class="field"><label for="s-pres">Presence penalty</label><input id="s-pres" type="number" step="0.05" min="-2" max="2" value="${esc(g.presence_penalty)}" /></div>
@@ -104,7 +105,7 @@ export function renderSettings(main, opts = {}) {
       baseUrl: $("s-base").value.trim(), apiKey: $("s-key").value,
       model: modelSel.value, temperature: Number($("s-temp").value),
       top_p: Number($("s-topp").value),
-      max_tokens: Number($("s-maxt").value), presence_penalty: Number($("s-pres").value),
+      max_tokens: Number($("s-maxt").value), history_messages: Number($("s-hist").value), presence_penalty: Number($("s-pres").value),
       frequency_penalty: Number($("s-freq").value),
       promptPreset: presetSel.value,
       extraStop: $("s-stop").value.split("\n").map((s) => s.trim()).filter(Boolean),
@@ -145,6 +146,7 @@ export function samplingFields(prefix, values, main) {
     </div>
     <div class="row2">
       <div class="field"><label for="${prefix}-maxt">Max tokens</label><input id="${prefix}-maxt" type="number" min="1" max="32000" placeholder="global" value="${v("max_tokens")}" /></div>
+      <div class="field"><label for="${prefix}-hist">History limit (0 = unlim, empty = global)</label><input id="${prefix}-hist" type="number" min="0" max="1000" placeholder="global" value="${v("history_messages")}" /></div>
     </div>
     <div class="row2">
       <div class="field"><label for="${prefix}-pres">Presence penalty</label><input id="${prefix}-pres" type="number" step="0.05" min="-2" max="2" placeholder="global" value="${v("presence_penalty")}" /></div>
@@ -158,7 +160,7 @@ export function readSampling(prefix, main) {
   const stopEl = main.querySelector(`#${prefix}-stop`);
   return {
     temperature: val(`${prefix}-temp`), top_p: val(`${prefix}-topp`),
-    max_tokens: val(`${prefix}-maxt`),
+    max_tokens: val(`${prefix}-maxt`), history_messages: val(`${prefix}-hist`),
     presence_penalty: val(`${prefix}-pres`), frequency_penalty: val(`${prefix}-freq`),
     promptPreset: main.querySelector(`#${prefix}-preset`)?.value || "",
     extraStop: stopEl ? stopEl.value.split("\n").map((s) => s.trim()).filter(Boolean) : [],
@@ -172,6 +174,7 @@ export function normalizeSampling(raw) {
     presence_penalty: raw.presence_penalty === "" ? "" : Number(raw.presence_penalty),
     frequency_penalty: raw.frequency_penalty === "" ? "" : Number(raw.frequency_penalty),
     max_tokens: raw.max_tokens === "" ? "" : Number(raw.max_tokens),
+    history_messages: raw.history_messages === "" ? "" : Number(raw.history_messages),
     promptPreset: raw.promptPreset || "",
     extraStop: raw.extraStop || [],
   };
