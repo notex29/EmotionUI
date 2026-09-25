@@ -30,6 +30,7 @@ export function renderSettings(main, opts = {}) {
     <div class="row2">
       <div class="field"><label for="s-temp">Temperature</label><input id="s-temp" type="number" step="0.05" min="0" max="2" value="${esc(g.temperature)}" /></div>
       <div class="field"><label for="s-topp">Top P</label><input id="s-topp" type="number" step="0.01" min="0" max="1" value="${esc(g.top_p)}" /></div>
+      <div class="field"><label for="s-minp">Min P</label><input id="s-minp" type="number" step="0.01" min="0" max="1" placeholder="empty" value="${g.min_p === "" || g.min_p == null ? "" : esc(g.min_p)}" /></div>
     </div>
     <div class="field"><label for="s-preset">Prompt Formatting Preset</label>
       <div style="display:flex;gap:8px">
@@ -104,7 +105,7 @@ export function renderSettings(main, opts = {}) {
     await store.saveGlobal({
       baseUrl: $("s-base").value.trim(), apiKey: $("s-key").value,
       model: modelSel.value, temperature: Number($("s-temp").value),
-      top_p: Number($("s-topp").value),
+      top_p: Number($("s-topp").value), min_p: $("s-minp").value === "" ? "" : Number($("s-minp").value),
       max_tokens: Number($("s-maxt").value), history_messages: Number($("s-hist").value), presence_penalty: Number($("s-pres").value),
       frequency_penalty: Number($("s-freq").value),
       promptPreset: presetSel.value,
@@ -126,8 +127,9 @@ export function samplingFields(prefix, values, main) {
   const v = (k, d) => (values?.[k] ?? "" ) === "" ? "" : esc(values[k]);
   return `
     <div class="row2">
-      <div class="field"><label for="${prefix}-temp">Temperature (empty = global)</label><input id="${prefix}-temp" type="number" step="0.05" min="0" max="2" placeholder="global" value="${v("temperature")}" /></div>
+      <div class="field"><label for="${prefix}-temp">Temp (empty=global)</label><input id="${prefix}-temp" type="number" step="0.05" min="0" max="2" placeholder="global" value="${v("temperature")}" /></div>
       <div class="field"><label for="${prefix}-topp">Top P</label><input id="${prefix}-topp" type="number" step="0.01" min="0" max="1" placeholder="global" value="${v("top_p")}" /></div>
+      <div class="field"><label for="${prefix}-minp">Min P</label><input id="${prefix}-minp" type="number" step="0.01" min="0" max="1" placeholder="global" value="${v("min_p")}" /></div>
     </div>
     <div class="field"><label for="${prefix}-preset">Prompt Formatting Preset</label>
       <div style="display:flex;gap:8px">
@@ -159,7 +161,7 @@ export function readSampling(prefix, main) {
   const val = (id) => { const el = main.querySelector("#" + id); return el && el.value !== "" ? Number(el.value) : ""; };
   const stopEl = main.querySelector(`#${prefix}-stop`);
   return {
-    temperature: val(`${prefix}-temp`), top_p: val(`${prefix}-topp`),
+    temperature: val(`${prefix}-temp`), top_p: val(`${prefix}-topp`), min_p: val(`${prefix}-minp`),
     max_tokens: val(`${prefix}-maxt`), history_messages: val(`${prefix}-hist`),
     presence_penalty: val(`${prefix}-pres`), frequency_penalty: val(`${prefix}-freq`),
     promptPreset: main.querySelector(`#${prefix}-preset`)?.value || "",
@@ -171,6 +173,7 @@ export function normalizeSampling(raw) {
   return {
     temperature: raw.temperature === "" ? "" : Number(raw.temperature),
     top_p: raw.top_p === "" ? "" : Number(raw.top_p),
+    min_p: raw.min_p === "" || raw.min_p == null ? "" : Number(raw.min_p),
     presence_penalty: raw.presence_penalty === "" ? "" : Number(raw.presence_penalty),
     frequency_penalty: raw.frequency_penalty === "" ? "" : Number(raw.frequency_penalty),
     max_tokens: raw.max_tokens === "" ? "" : Number(raw.max_tokens),

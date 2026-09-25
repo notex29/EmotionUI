@@ -7,6 +7,7 @@ export function resolveEndpoint(charCfg, globalCfg) {
   const merged = {
     temperature: pick(charCfg?.temperature, globalCfg.temperature, 0.75),
     top_p: pick(charCfg?.top_p, globalCfg.top_p, 0.9),
+    min_p: pick(charCfg?.min_p, globalCfg.min_p, ""),
     presence_penalty: pick(charCfg?.presence_penalty, globalCfg.presence_penalty, 0.2),
     frequency_penalty: pick(charCfg?.frequency_penalty, globalCfg.frequency_penalty, 0.3),
     max_tokens: pick(charCfg?.max_tokens, globalCfg.max_tokens, 800),

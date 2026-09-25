@@ -53,7 +53,7 @@ export function buildBody({ char, persona, memory, history, newUserText, endpoin
   const rawMsgs = buildMessages({ char, persona, memory, history, newUserText, endpoint });
   const formatted = applyFormattingPreset(rawMsgs, endpoint.promptPreset, endpoint.customPreset);
   
-  return {
+  const body = {
     model: endpoint.model,
     temperature: Number(endpoint.temperature),
     top_p: Number(endpoint.top_p),
@@ -64,6 +64,12 @@ export function buildBody({ char, persona, memory, history, newUserText, endpoin
     stop,
     ...formatted,
   };
+  
+  if (endpoint.min_p !== "" && endpoint.min_p !== null && endpoint.min_p !== undefined && !isNaN(Number(endpoint.min_p))) {
+    body.min_p = Number(endpoint.min_p);
+  }
+  
+  return body;
 }
 
 function characterCardBlock(c) {

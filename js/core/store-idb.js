@@ -88,7 +88,7 @@ export async function initStorage(onStatus) {
 export function defaultGlobal() {
   return {
     baseUrl: "", apiKey: "", model: "",
-    temperature: 0.75, top_p: 0.9,
+    temperature: 0.75, top_p: 0.9, min_p: "",
     presence_penalty: 0.2, frequency_penalty: 0.3,
     max_tokens: 800, history_messages: 10, extraStop: [], updatedAt: Date.now(),
   };

@@ -180,143 +180,207 @@ export function openChatMenu(char, acts) {
 export function openChatCustomizerModal(char) {
   const cfg = char.extensions?.chatConfig || { aiBg: "transparent", userBg: "transparent", autoText: true, aiText: "", userText: "", chatBgColor: "", chatBgImage: "", composerBg: "", composerTxt: "", inputBg: "", inputTxt: "", inputHint: "", lineSpacing: 1.5, letterSpacing: 0 };
   
-  const body = `
-    <div style="display: grid; gap: 12px; margin-bottom: 16px;">
-      <div class="field">
-        <label>Chat Background Color</label>
-        <div style="display:flex;gap:8px">
-          <input type="color" id="cc-bg-color" value="${cfg.chatBgColor || "#0e1116"}" />
-          <input type="text" id="cc-bg-color-txt" value="${cfg.chatBgColor || ""}" placeholder="#0e1116 or transparent" style="flex:1;min-width:0" />
-        </div>
+  const root = document.getElementById("modal-root");
+  root.innerHTML = `
+    <div class="fs-modal-back" id="cc-back">
+      <div class="fs-modal-head">
+        <h2 style="margin:0;font-size:18px;">Chat Customizer</h2>
+        <button id="cc-close" class="icon-btn" aria-label="Close customizer" title="Close">${icons.x}</button>
       </div>
-      <div class="field">
-        <label>Chat Background Image / GIF</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="file" id="cc-bg-img" accept="image/*" style="flex:1;min-width:0" />
-          <button type="button" class="ghost-btn" id="cc-bg-clear" style="flex:0 0 auto;padding:10px;">Clear</button>
-        </div>
-        ${cfg.chatBgImage ? `<img src="${cfg.chatBgImage}" style="max-height:80px;border-radius:8px;margin-top:6px;object-fit:contain;" id="cc-bg-preview" />` : `<img id="cc-bg-preview" style="display:none;max-height:80px;border-radius:8px;margin-top:6px;object-fit:contain;" />`}
-      </div>
-      
-      <hr style="border:0;border-top:1px solid var(--line);margin:4px 0" />
-      
-      <div class="field">
-        <label>AI Bubble Background Color</label>
-        <div style="display:flex;gap:8px">
-          <input type="color" id="cc-ai-bg" value="${cfg.aiBg || "#1b2334"}" />
-          <input type="text" id="cc-ai-bg-txt" value="${cfg.aiBg || ""}" placeholder="#1b2334 or transparent" style="flex:1;min-width:0" />
-        </div>
-      </div>
-      <div class="field">
-        <label>User Bubble Background Color</label>
-        <div style="display:flex;gap:8px">
-          <input type="color" id="cc-user-bg" value="${cfg.userBg || "#6a4dff"}" />
-          <input type="text" id="cc-user-bg-txt" value="${cfg.userBg || ""}" placeholder="#6a4dff or transparent" style="flex:1;min-width:0" />
-        </div>
-      </div>
+      <div class="fs-modal-body">
+        <div class="fs-controls">
+          <div class="field">
+            <label>Chat Background Color</label>
+            <div style="display:flex;gap:8px">
+              <input type="color" id="cc-bg-color" value="${cfg.chatBgColor || "#0e1116"}" />
+              <input type="text" id="cc-bg-color-txt" value="${cfg.chatBgColor || ""}" placeholder="#0e1116 or transparent" style="flex:1;min-width:0" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Chat Background Image / GIF</label>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+              <input type="file" id="cc-bg-img" accept="image/*" style="width:100%" />
+              <button type="button" class="ghost-btn" id="cc-bg-clear" style="padding:10px 16px;">Clear</button>
+            </div>
+          </div>
+          
+          <hr style="border:0;border-top:1px solid var(--line);margin:4px 0" />
+          
+          <div class="field">
+            <label>AI Bubble Background Color</label>
+            <div style="display:flex;gap:8px">
+              <input type="color" id="cc-ai-bg" value="${cfg.aiBg || "#1b2334"}" />
+              <input type="text" id="cc-ai-bg-txt" value="${cfg.aiBg || ""}" placeholder="#1b2334 or transparent" style="flex:1;min-width:0" />
+            </div>
+          </div>
+          <div class="field">
+            <label>User Bubble Background Color</label>
+            <div style="display:flex;gap:8px">
+              <input type="color" id="cc-user-bg" value="${cfg.userBg || "#6a4dff"}" />
+              <input type="text" id="cc-user-bg-txt" value="${cfg.userBg || ""}" placeholder="#6a4dff or transparent" style="flex:1;min-width:0" />
+            </div>
+          </div>
 
-      <div class="field">
-        <label for="cc-auto-txt" style="display:flex;gap:8px;cursor:pointer;align-items:center;font-size:14px">
-          <input type="checkbox" id="cc-auto-txt" ${cfg.autoText ? "checked" : ""} />
-          <span>Automatically invert text color for contrast</span>
-        </label>
-      </div>
+          <div class="field">
+            <label for="cc-auto-txt" style="display:flex;gap:8px;cursor:pointer;align-items:center;font-size:14px">
+              <input type="checkbox" id="cc-auto-txt" ${cfg.autoText ? "checked" : ""} />
+              <span>Automatically invert text color for contrast</span>
+            </label>
+          </div>
 
-      <div class="row2">
-        <div class="field">
-          <label>AI Text Color</label>
-          <div style="display:flex;gap:8px">
-            <input type="color" id="cc-ai-txt" value="${cfg.aiText || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
-            <input type="text" id="cc-ai-txt-val" value="${cfg.aiText || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
+          <div class="row2">
+            <div class="field">
+              <label>AI Text Color</label>
+              <div style="display:flex;gap:8px">
+                <input type="color" id="cc-ai-txt" value="${cfg.aiText || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
+                <input type="text" id="cc-ai-txt-val" value="${cfg.aiText || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
+              </div>
+            </div>
+            <div class="field">
+              <label>User Text Color</label>
+              <div style="display:flex;gap:8px">
+                <input type="color" id="cc-user-txt" value="${cfg.userText || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
+                <input type="text" id="cc-user-txt-val" value="${cfg.userText || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
+              </div>
+            </div>
+          </div>
+
+          <hr style="border:0;border-top:1px solid var(--line);margin:4px 0" />
+
+          <h3 style="margin:0;font-size:15px">Bottom Bar Settings</h3>
+          <div class="field">
+            <label>Composer Background</label>
+            <div style="display:flex;gap:8px">
+              <input type="color" id="cc-comp-bg" value="${cfg.composerBg || "#000000"}" />
+              <input type="text" id="cc-comp-bg-txt" value="${cfg.composerBg || ""}" placeholder="#000000 or transparent" style="flex:1;min-width:0" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Composer Icons Color</label>
+            <div style="display:flex;gap:8px">
+              <input type="color" id="cc-comp-txt" value="${cfg.composerTxt || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
+              <input type="text" id="cc-comp-txt-val" value="${cfg.composerTxt || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
+            </div>
+          </div>
+          <div class="field">
+            <label>Input Box Background</label>
+            <div style="display:flex;gap:8px">
+              <input type="color" id="cc-in-bg" value="${cfg.inputBg || "#1b2334"}" />
+              <input type="text" id="cc-in-bg-txt" value="${cfg.inputBg || ""}" placeholder="#1b2334 or transparent" style="flex:1;min-width:0" />
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label>Input Text Color</label>
+              <div style="display:flex;gap:8px">
+                <input type="color" id="cc-in-txt" value="${cfg.inputTxt || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
+                <input type="text" id="cc-in-txt-val" value="${cfg.inputTxt || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
+              </div>
+            </div>
+            <div class="field">
+              <label>Input Hint Color</label>
+              <div style="display:flex;gap:8px">
+                <input type="color" id="cc-in-hint" value="${cfg.inputHint || "#888888"}" ${cfg.autoText ? "disabled" : ""} />
+                <input type="text" id="cc-in-hint-val" value="${cfg.inputHint || ""}" placeholder="#888888" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
+              </div>
+            </div>
+          </div>
+
+          <hr style="border:0;border-top:1px solid var(--line);margin:4px 0" />
+
+          <h3 style="margin:0;font-size:15px">Text Spacing</h3>
+          <div class="field">
+            <label>Line Spacing: <span id="cc-ls-val">${cfg.lineSpacing || 1.5}</span></label>
+            <input type="range" id="cc-line-space" min="0.8" max="3" step="0.1" value="${cfg.lineSpacing || 1.5}" style="width:100%" />
+          </div>
+          <div class="field">
+            <label>Letter Spacing: <span id="cc-let-val">${cfg.letterSpacing || 0}px</span></label>
+            <input type="range" id="cc-let-space" min="-1" max="5" step="0.1" value="${cfg.letterSpacing || 0}" style="width:100%" />
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:12px;margin-bottom:30px">
+            <button class="btn" id="cc-save" style="width:100%">Save Customizations</button>
           </div>
         </div>
-        <div class="field">
-          <label>User Text Color</label>
-          <div style="display:flex;gap:8px">
-            <input type="color" id="cc-user-txt" value="${cfg.userText || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
-            <input type="text" id="cc-user-txt-val" value="${cfg.userText || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
+
+        <div class="fs-preview-area" aria-hidden="true">
+          <div id="prev-frame" class="preview-desktop">
+            <div class="preview-sidebar"></div>
+            <div class="preview-main" id="prev-main" style="overflow:hidden;">
+              <div class="chat-wrap" style="width:100%; height:100%; margin:0; padding-bottom:70px; overflow-y:auto; display:flex; flex-direction:column; position:relative;">
+                <div id="chat-log" style="padding:16px 12px 8px 12px; display:flex; flex-direction:column; gap:12px;">
+                  
+                  <div class="msg user" id="prev-user-msg" style="position:relative">
+                    <div class="av" style="font-size:12px;">U</div>
+                    <div class="bubble" id="prev-user">
+                      <div class="who" style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>Default User</span>
+                      </div>
+                      <div class="txt" id="prev-user-txt"><p style="margin:0">Hello! I'm testing out this custom theme.</p></div>
+                    </div>
+                  </div>
+
+                  <div class="msg ai" id="prev-ai-msg" style="position:relative">
+                    <div class="av" style="font-size:12px;">AI</div>
+                    <div class="bubble" id="prev-ai">
+                      <div class="who" style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>AI Assistant</span>
+                      </div>
+                      <div class="txt" id="prev-ai-txt"><p style="margin:0">Greetings! Your customization looks great so far. I will dynamically respond to your real-time adjustments.</p></div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="composer" id="prev-comp-wrapper" style="position:absolute; left:0; right:0; bottom:0; padding:10px;">
+                  <div class="composer-inner" id="prev-comp">
+                    <button class="icon-btn" type="button" style="background:transparent;border:0;color:var(--txt-1);margin:0;padding:4px;flex-shrink:0; align-self:flex-end;">${icons.user}</button>
+                    <textarea id="prev-in" rows="1" placeholder="Message..." style="flex:1;background:transparent;border:0;color:inherit;resize:none;min-height:20px;padding:4px;outline:none;" disabled></textarea>
+                    <button class="icon-btn" type="button" style="background:transparent;border:0;color:#fff;margin:0;padding:4px;flex-shrink:0; align-self:flex-end;">${icons.send}</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
-
-      <hr style="border:0;border-top:1px solid var(--line);margin:4px 0" />
-
-      <h3 style="margin:0;font-size:15px">Bottom Bar Settings</h3>
-      <div class="field">
-        <label>Container Bar Background</label>
-        <div style="display:flex;gap:8px">
-          <input type="color" id="cc-comp-bg" value="${cfg.composerBg || "#000000"}" />
-          <input type="text" id="cc-comp-bg-txt" value="${cfg.composerBg || ""}" placeholder="#000000 or transparent" style="flex:1;min-width:0" />
-        </div>
-      </div>
-      <div class="field">
-        <label>Container Elements Text Color</label>
-        <div style="display:flex;gap:8px">
-          <input type="color" id="cc-comp-txt" value="${cfg.composerTxt || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
-          <input type="text" id="cc-comp-txt-val" value="${cfg.composerTxt || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
-        </div>
-      </div>
-      <div class="field">
-        <label>Text Box Background</label>
-        <div style="display:flex;gap:8px">
-          <input type="color" id="cc-in-bg" value="${cfg.inputBg || "#1b2334"}" />
-          <input type="text" id="cc-in-bg-txt" value="${cfg.inputBg || ""}" placeholder="#1b2334 or transparent" style="flex:1;min-width:0" />
-        </div>
-      </div>
-      <div class="row2">
-        <div class="field">
-          <label>Text Box Text Color</label>
-          <div style="display:flex;gap:8px">
-            <input type="color" id="cc-in-txt" value="${cfg.inputTxt || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
-            <input type="text" id="cc-in-txt-val" value="${cfg.inputTxt || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
-          </div>
-        </div>
-        <div class="field">
-          <label>Text Box Hint Color</label>
-          <div style="display:flex;gap:8px">
-            <input type="color" id="cc-in-hint" value="${cfg.inputHint || "#888888"}" ${cfg.autoText ? "disabled" : ""} />
-            <input type="text" id="cc-in-hint-val" value="${cfg.inputHint || ""}" placeholder="#888888" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
-          </div>
-        </div>
-      </div>
-
-      <hr style="border:0;border-top:1px solid var(--line);margin:4px 0" />
-
-      <h3 style="margin:0;font-size:15px">Text Spacing</h3>
-      
-      <div style="padding:10px;background:#0b0f16;border:1px solid var(--line);border-radius:12px;margin-bottom:12px">
-        <div id="cc-preview-text" style="line-height:${cfg.lineSpacing || 1.5};letter-spacing:${cfg.letterSpacing || 0}px;word-spacing:${(cfg.letterSpacing || 0) * 2}px;word-break:break-word;overflow-wrap:break-word;">This is a preview of your custom text spacing! Move the sliders below to see how your messages will look in the chat.</div>
-      </div>
-      
-      <div class="field">
-        <label>Line Spacing: <span id="cc-ls-val">${cfg.lineSpacing || 1.5}</span></label>
-        <input type="range" id="cc-line-space" min="0.8" max="3" step="0.1" value="${cfg.lineSpacing || 1.5}" style="width:100%" />
-      </div>
-      <div class="field">
-        <label>Letter Spacing: <span id="cc-let-val">${cfg.letterSpacing || 0}px</span></label>
-        <input type="range" id="cc-let-space" min="-1" max="5" step="0.1" value="${cfg.letterSpacing || 0}" style="width:100%" />
-      </div>
-
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" id="cc-save">Save Customizations</button>
     </div>
   `;
 
-  const { root, close } = shell("Chat Customizer", body, "Chat Customizer");
+  const close = () => { window.removeEventListener("resize", onResize); root.innerHTML = ""; };
+  root.querySelector("#cc-close").addEventListener("click", close);
   
+  const frame = root.querySelector("#prev-frame");
+  const onResize = () => {
+    if (window.innerWidth < 768) frame.className = "preview-phone";
+    else frame.className = "preview-desktop";
+  };
+  window.addEventListener("resize", onResize);
+  onResize();
+
   const autoTxt = root.querySelector("#cc-auto-txt");
   const tAiC = root.querySelector("#cc-ai-txt");
   const tAiT = root.querySelector("#cc-ai-txt-val");
   const tUsrC = root.querySelector("#cc-user-txt");
   const tUsrT = root.querySelector("#cc-user-txt-val");
-  
   const tCompC = root.querySelector("#cc-comp-txt");
   const tCompT = root.querySelector("#cc-comp-txt-val");
   const tInC = root.querySelector("#cc-in-txt");
   const tInT = root.querySelector("#cc-in-txt-val");
   const tHintC = root.querySelector("#cc-in-hint");
   const tHintT = root.querySelector("#cc-in-hint-val");
+  
+  const bgC = root.querySelector("#cc-bg-color");
+  const bgT = root.querySelector("#cc-bg-color-txt");
+  const aiBgC = root.querySelector("#cc-ai-bg");
+  const aiBgT = root.querySelector("#cc-ai-bg-txt");
+  const usrBgC = root.querySelector("#cc-user-bg");
+  const usrBgT = root.querySelector("#cc-user-bg-txt");
+  const compBgC = root.querySelector("#cc-comp-bg");
+  const compBgT = root.querySelector("#cc-comp-bg-txt");
+  const inBgC = root.querySelector("#cc-in-bg");
+  const inBgT = root.querySelector("#cc-in-bg-txt");
 
   autoTxt.addEventListener("change", () => {
     const dis = autoTxt.checked;
@@ -325,72 +389,127 @@ export function openChatCustomizerModal(char) {
     tCompC.disabled = dis; tCompT.disabled = dis;
     tInC.disabled = dis; tInT.disabled = dis;
     tHintC.disabled = dis; tHintT.disabled = dis;
+    updatePreview();
   });
   
-  const sync = (c, t) => { c.addEventListener("input", () => t.value = c.value); t.addEventListener("input", () => { if (t.value.match(/^#[0-9a-f]{3,8}$/i)) c.value = t.value.slice(0,7); }); };
-  sync(root.querySelector("#cc-bg-color"), root.querySelector("#cc-bg-color-txt"));
-  sync(root.querySelector("#cc-ai-bg"), root.querySelector("#cc-ai-bg-txt"));
-  sync(root.querySelector("#cc-user-bg"), root.querySelector("#cc-user-bg-txt"));
-  sync(tAiC, tAiT);
-  sync(tUsrC, tUsrT);
-  sync(root.querySelector("#cc-comp-bg"), root.querySelector("#cc-comp-bg-txt"));
-  sync(tCompC, tCompT);
-  sync(root.querySelector("#cc-in-bg"), root.querySelector("#cc-in-bg-txt"));
-  sync(tInC, tInT);
-  sync(tHintC, tHintT);
+  const sync = (c, t) => { 
+    c.addEventListener("input", () => { t.value = c.value; updatePreview(); }); 
+    t.addEventListener("input", () => { 
+      if (t.value.match(/^#[0-9a-f]{3,8}$/i)) c.value = t.value.slice(0,7); 
+      updatePreview();
+    }); 
+  };
+  sync(bgC, bgT); sync(aiBgC, aiBgT); sync(usrBgC, usrBgT);
+  sync(tAiC, tAiT); sync(tUsrC, tUsrT);
+  sync(compBgC, compBgT); sync(tCompC, tCompT);
+  sync(inBgC, inBgT); sync(tInC, tInT); sync(tHintC, tHintT);
   
   let currentImg = cfg.chatBgImage || "";
   const fileIn = root.querySelector("#cc-bg-img");
-  const preview = root.querySelector("#cc-bg-preview");
   
   fileIn.addEventListener("change", () => {
     const file = fileIn.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
-      currentImg = e.target.result;
-      preview.src = currentImg;
-      preview.style.display = "block";
-    };
+    reader.onload = (e) => { currentImg = e.target.result; updatePreview(); };
     reader.readAsDataURL(file);
   });
   
   root.querySelector("#cc-bg-clear").addEventListener("click", () => {
-    currentImg = "";
-    preview.style.display = "none";
-    preview.src = "";
-    fileIn.value = "";
+    currentImg = ""; fileIn.value = ""; updatePreview();
   });
   
   const lineSp = root.querySelector("#cc-line-space");
   const lineVal = root.querySelector("#cc-ls-val");
   const letSp = root.querySelector("#cc-let-space");
   const letVal = root.querySelector("#cc-let-val");
-  const prevTxt = root.querySelector("#cc-preview-text");
   
-  lineSp.addEventListener("input", () => {
-    lineVal.textContent = lineSp.value;
-    prevTxt.style.lineHeight = lineSp.value;
-  });
-  letSp.addEventListener("input", () => {
-    letVal.textContent = letSp.value + "px";
-    prevTxt.style.letterSpacing = letSp.value + "px";
-    prevTxt.style.wordSpacing = (parseFloat(letSp.value) * 2) + "px";
-  });
+  lineSp.addEventListener("input", () => { lineVal.textContent = lineSp.value; updatePreview(); });
+  letSp.addEventListener("input", () => { letVal.textContent = letSp.value + "px"; updatePreview(); });
+
+  function getContrast(hex) {
+    if (!hex || hex === "transparent") return "#ffffff";
+    if (hex.startsWith("#")) {
+      let r = 255, g = 255, b = 255;
+      if (hex.length >= 7) {
+        r = parseInt(hex.slice(1,3), 16); g = parseInt(hex.slice(3,5), 16); b = parseInt(hex.slice(5,7), 16);
+      } else if (hex.length >= 4) {
+        r = parseInt(hex.charAt(1)+hex.charAt(1), 16); g = parseInt(hex.charAt(2)+hex.charAt(2), 16); b = parseInt(hex.charAt(3)+hex.charAt(3), 16);
+      }
+      return (((r*299)+(g*587)+(b*114))/1000 >= 128) ? "#000000" : "#ffffff";
+    }
+    return "#ffffff";
+  }
+
+  const pMain = root.querySelector("#prev-main");
+  const pAi = root.querySelector("#prev-ai");
+  const pUsr = root.querySelector("#prev-user");
+  const pComp = root.querySelector("#prev-comp");
+  const pCompWrapper = root.querySelector("#prev-comp-wrapper");
+  const pIn = root.querySelector("#prev-in");
+  const aiTxt = root.querySelector("#prev-ai-txt");
+  const usrTxt = root.querySelector("#prev-user-txt");
+
+  let updatePending = false;
+  function updatePreview() {
+    if (updatePending) return;
+    updatePending = true;
+    requestAnimationFrame(() => {
+      updatePending = false;
+      
+      pMain.style.backgroundColor = bgT.value || "transparent";
+      pMain.style.backgroundImage = currentImg ? 'url("' + currentImg + '")' : "none";
+      
+      pAi.style.background = aiBgT.value || "transparent";
+      pUsr.style.background = usrBgT.value || "transparent";
+      pComp.style.background = compBgT.value || "transparent";
+      pCompWrapper.style.background = "transparent"; // override original linear gradient
+      
+      if (inBgT.value.trim() !== "" && inBgT.value.trim() !== "transparent") {
+        pIn.style.backgroundColor = inBgT.value;
+        pIn.style.borderRadius = "12px";
+        pIn.style.padding = "4px 12px";
+      } else {
+        pIn.style.backgroundColor = "transparent";
+        pIn.style.padding = "4px 4px";
+      }
+
+      if (autoTxt.checked) {
+        pAi.style.color = getContrast(aiBgT.value);
+        pUsr.style.color = getContrast(usrBgT.value);
+        pComp.style.color = getContrast(compBgT.value);
+        pIn.style.color = getContrast(inBgT.value);
+      } else {
+        pAi.style.color = tAiT.value || "#fff";
+        pUsr.style.color = tUsrT.value || "#fff";
+        pComp.style.color = tCompT.value || "#fff";
+        pIn.style.color = tInT.value || "#fff";
+      }
+
+      const ls = lineSp.value;
+      const lts = letSp.value + "px";
+      const ws = (parseFloat(letSp.value) * 2) + "px";
+      aiTxt.style.lineHeight = ls; usrTxt.style.lineHeight = ls;
+      aiTxt.style.letterSpacing = lts; usrTxt.style.letterSpacing = lts;
+      aiTxt.style.wordSpacing = ws; usrTxt.style.wordSpacing = ws;
+    });
+  }
+  
+  updatePreview();
   
   root.querySelector("#cc-save").addEventListener("click", async () => {
     if (!char.extensions) char.extensions = {};
     char.extensions.chatConfig = {
-      chatBgColor: root.querySelector("#cc-bg-color-txt").value.trim(),
+      chatBgColor: bgT.value.trim(),
       chatBgImage: currentImg,
-      aiBg: root.querySelector("#cc-ai-bg-txt").value.trim(),
-      userBg: root.querySelector("#cc-user-bg-txt").value.trim(),
+      aiBg: aiBgT.value.trim(),
+      userBg: usrBgT.value.trim(),
       autoText: autoTxt.checked,
       aiText: tAiT.value.trim(),
       userText: tUsrT.value.trim(),
-      composerBg: root.querySelector("#cc-comp-bg-txt").value.trim(),
+      composerBg: compBgT.value.trim(),
       composerTxt: tCompT.value.trim(),
-      inputBg: root.querySelector("#cc-in-bg-txt").value.trim(),
+      inputBg: inBgT.value.trim(),
       inputTxt: tInT.value.trim(),
       inputHint: tHintT.value.trim(),
       lineSpacing: parseFloat(lineSp.value) || 1.5,
