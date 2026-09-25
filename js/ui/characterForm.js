@@ -30,7 +30,7 @@ export function renderCharacterForm(main, go, existingId = null) {
       <div style="display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:24px;">
         ${c.avatar ? `<img class="avatar-prev" src="${c.avatar}" alt="Character avatar preview" style="width:120px;height:120px;border-radius:32px;object-fit:cover;border:2px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,0.2)" />` : `<div class="avatar-prev" aria-hidden="true" style="width:120px;height:120px;border-radius:32px;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;background:var(--bg-2);font-size:13px;color:var(--txt-2);text-align:center;line-height:1.4">Drop<br>Avatar</div>`}
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-          <label class="tool-btn" for="cf-file" aria-label="Upload photo or character card" title="Upload photo or card" style="background:var(--bg-3);color:#fff;cursor:pointer"><span aria-hidden="true">${icons.download}</span><span class="lbl">Upload Image</span></label>
+          <button id="cf-btn-file" class="tool-btn" type="button" aria-label="Upload photo or character card" title="Upload photo or card" style="background:var(--bg-3);color:#fff;"><span aria-hidden="true">${icons.download}</span><span class="lbl">Upload Image</span></button>
           <input id="cf-file" type="file" accept="image/png,image/jpeg,image/webp,.json" hidden />
           <button id="cf-web" class="tool-btn" type="button" aria-label="Import a character card from a public website" title="Import from chub.ai or any card link"><span aria-hidden="true">${icons.globe}</span><span class="lbl">Import from web</span></button>
           <button id="cf-clear-av" class="tool-btn" type="button" aria-label="Remove character photo" title="Remove character photo" style="color:var(--txt-1)"><span aria-hidden="true">${icons.trash}</span><span class="lbl">Remove</span></button>
@@ -51,6 +51,7 @@ export function renderCharacterForm(main, go, existingId = null) {
       shell();
     }));
     drawBody();
+    main.querySelector("#cf-btn-file").addEventListener("click", () => main.querySelector("#cf-file").click());
     main.querySelector("#cf-file").addEventListener("change", onFile);
     main.querySelector("#cf-web").addEventListener("click", onWebImport);
     main.querySelector("#cf-clear-av").addEventListener("click", () => { c.avatar = ""; shell(); });

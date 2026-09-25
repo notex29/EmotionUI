@@ -136,9 +136,7 @@ export async function openCharSettingsModal(char) {
     <div id="cs-samp">${samplingFields("cs", ai)}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
       <button id="cs-save" class="btn" type="button" aria-label="Save character chat settings">Save</button>
-      <button id="cs-prev" class="ghost-btn" type="button" aria-label="Preview the exact request payload">Preview request</button>
-    </div>
-    <div class="field" style="margin-top:10px"><label for="cs-out">Request preview</label><textarea id="cs-out" rows="8" readonly placeholder="Shows model, stop list and the last messages sent…"></textarea></div>`, "Character chat settings");
+    </div>`, "Character chat settings");
   root.querySelector("#cs-fetch").addEventListener("click", async () => {
     try {
       root.querySelector("#cs-fetch").disabled = true;
@@ -157,16 +155,6 @@ export async function openCharSettingsModal(char) {
     char.ai = collect();
     await store.saveCharacter(char);
     close(); toast("Character settings saved.", "ok");
-  });
-  root.querySelector("#cs-prev").addEventListener("click", async () => {
-    const draft = { ...char, ai: collect() };
-    const endpoint = resolveEndpoint(draft.ai, store.global);
-    const chat = await store.getChat(char.id);
-    const memory = await store.getMemory(char.id);
-    try {
-      const body = buildBody({ char: draft, persona: store.activePersona(), memory, history: chat.messages, newUserText: "Hello", endpoint });
-      root.querySelector("#cs-out").value = JSON.stringify({ ...body, messages: body.messages.slice(0, 3).concat([`… (${body.messages.length} messages total, last 10 turns + systems)`]) }, null, 2);
-    } catch (e) { root.querySelector("#cs-out").value = e.message; }
   });
 }
 
