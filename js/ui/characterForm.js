@@ -4,6 +4,7 @@ import { fetchIntoSelect, samplingFields, normalizeSampling, readSampling } from
 import { fetchModels } from "../core/api_v2.js";
 import { FORMATTING_PRESETS } from "../core/presets.js";
 import { toast, announce } from "./toast.js";
+import { openDiscoverModal } from "./discover.js";
 import { esc } from "../core/utils.js";
 import { icons } from "./icons.js";
 
@@ -25,12 +26,13 @@ export function renderCharacterForm(main, go, existingId = null) {
     main.innerHTML = `
     <div class="view-narrow"><div class="panel">
       <h2>${existingId ? "Edit character" : "Create character"}</h2>
-      <p class="sub">Drop a SillyTavern PNG card (or JSON) on the avatar field — name, description, scenario, example dialogue and more prefill instantly.</p>
+      <p class="sub">Drop a SillyTavern PNG card (or JSON) on the avatar field — or pull one straight from a public card site. Name, description, scenario, example dialogue and more prefill instantly.</p>
       <div style="display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:24px;">
         ${c.avatar ? `<img class="avatar-prev" src="${c.avatar}" alt="Character avatar preview" style="width:120px;height:120px;border-radius:32px;object-fit:cover;border:2px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,0.2)" />` : `<div class="avatar-prev" aria-hidden="true" style="width:120px;height:120px;border-radius:32px;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;background:var(--bg-2);font-size:13px;color:var(--txt-2);text-align:center;line-height:1.4">Drop<br>Avatar</div>`}
-        <div style="display:flex;gap:12px;align-items:center">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           <label class="tool-btn" for="cf-file" aria-label="Upload photo or character card" title="Upload photo or card" style="background:var(--bg-3);color:#fff;cursor:pointer"><span aria-hidden="true">${icons.download}</span><span class="lbl">Upload Image</span></label>
           <input id="cf-file" type="file" accept="image/png,image/jpeg,image/webp,.json" hidden />
+          <button id="cf-web" class="tool-btn" type="button" aria-label="Import a character card from a public website" title="Import from chub.ai or any card link"><span aria-hidden="true">${icons.globe}</span><span class="lbl">Import from web</span></button>
           <button id="cf-clear-av" class="tool-btn" type="button" aria-label="Remove character photo" title="Remove character photo" style="color:var(--txt-1)"><span aria-hidden="true">${icons.trash}</span><span class="lbl">Remove</span></button>
         </div>
       </div>
@@ -50,6 +52,7 @@ export function renderCharacterForm(main, go, existingId = null) {
     }));
     drawBody();
     main.querySelector("#cf-file").addEventListener("change", onFile);
+    main.querySelector("#cf-web").addEventListener("click", onWebImport);
     main.querySelector("#cf-clear-av").addEventListener("click", () => { c.avatar = ""; shell(); });
     main.querySelector("#cf-save").addEventListener("click", onSave);
     main.querySelector("#cf-del")?.addEventListener("click", async () => {
@@ -79,6 +82,21 @@ export function renderCharacterForm(main, go, existingId = null) {
       }
       shell();
     } catch (err) { toast(err.message, "err"); }
+  }
+
+  function onWebImport() {
+    try { collect(); } catch (e) { console.error("collect error", e); }
+    openDiscoverModal({
+      persist: false,
+      onImported: (picked) => {
+        if (!picked) return;
+        const av = c.avatar;
+        c = { ...c, ...picked, id: c.id || picked.id, avatar: picked.avatar || av };
+        toast(`“${c.name}” loaded from the web — review the fields, then save.`, "ok");
+        announce("Character card loaded. Review the fields, then save.");
+        shell();
+      },
+    });
   }
 
   function drawBody() {

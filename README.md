@@ -6,6 +6,7 @@ A humble bridge between complicated and simple. Inspired by Character.ai, but ex
 
 - **Local First & Privacy Respecting**: All chat history, character data, and preferences are stored locally in your browser using IndexedDB. No centralized server snooping.
 - **Tavern PNG Card Support**: Import and manage your favorite characters effortlessly using the standard Tavern PNG card format.
+- **Online Card Browser**: Search [chub.ai](https://chub.ai) and import cards straight into your library — or paste any public card link (a chub.ai / characterhub page, a direct `.png` card, or a `.json` card). No account, no login, and adult results are hidden behind an off-by-default toggle. See [`js/ui/discover.js`](./js/ui/discover.js).
 - **Hybrid Cascade Endpoints**: Set a global API endpoint, or override it on a per-character basis for ultimate flexibility.
 - **Deeply Customizable**: Fine-tune the UI to your liking. Change chat backgrounds, bubble colors, text spacing, and contrast settings instantly via the Chat Customizer.
 - **Smart Context Memory**: Long chats won't lose the plot. Built-in auto-summarization acts as a rolling context to keep characters in character without eating up token limits.
@@ -20,6 +21,26 @@ EmotionUI connects directly to your backend LLM runners from the browser. It is 
 - **Prompt Formatting**: EmotionUI supports dynamic template mapping to format raw conversation into exact text arrays for your models. Natively supported formats include **ChatML**, **Llama 3**, and **Custom** (which allows injecting your own JSON template directly into the character's settings). See how the prompt is structured in [`js/core/promptBuilder_v2.js`](./js/core/promptBuilder_v2.js).
 - **Anti-Impersonation (Stop Sequences)**: The engine proactively blocks the LLM from speaking on your behalf. By default, it dynamically builds stop sequences based on your active persona name and the character's name (e.g., `\nUser:`, `\n[PersonaName]:`, `<|eot_id|>`, `<|end_of_text|>`). You can easily define extra custom stop sequences within the settings UI to strict-lock models. 
 - **Lorebooks & Memory**: EmotionUI dynamically injects relevant snippets via a TF-IDF keyword recall engine to retrieve "Archived Event References" before sending requests, preserving token limits while keeping lore alive.
+- **Card Source Adapters**: Online imports are isolated in [`js/core/sources/`](./js/core/sources/) — one adapter per platform behind a shared HTTP layer (timeouts, aborts, retries, typed errors, and the optional proxy). Adding another site means adding one file, not touching the UI. Remote cards are parsed by the *same* [`extractTavernCard()`](./js/core/tavernCard.js) used for local PNG drops, so a downloaded card lands in the database in exactly the same shape.
+
+### Online card imports & the local relay
+
+Search and downloads are plain `GET` requests, so they normally work straight from the browser — chub.ai's public search and image CDN both send `Access-Control-Allow-Origin: *`.
+
+Some networks (corporate proxies, certain ISPs, and regions chub.ai does not serve) block those cross-origin requests. If browsing fails with a network/CORS error, run the bundled server — it adds a small read-only relay:
+
+```
+python serve.py          # then open http://127.0.0.1:8000/index.html
+```
+
+Paste `http://127.0.0.1:8000/api/proxy` into **Settings → Online card imports** and press **Test**. The relay is deliberately narrow:
+
+- `GET` only, HTTPS targets only, on a fixed allowlist of card hosts.
+- 12 MB response cap and a 25 second timeout.
+- It forwards only the `url` query parameter, so it can never be aimed at a router, a NAS, or anything else on your network.
+- It is never sent your chats, API keys, or character library — those never leave IndexedDB.
+
+`python serve.py --no-proxy` disables the relay entirely if you would rather not have it available.
 
 ## Getting Started
 
