@@ -20,13 +20,41 @@ export function defaultCharacter() {
   };
 }
 
-export async function fileToDataUrl(file) {
-  const buf = await file.arrayBuffer();
-  const bytes = new Uint8Array(buf);
+export function bytesToDataUrl(bytes, mime = "image/png") {
   let bin = "";
   const CH = 0x8000;
   for (let i = 0; i < bytes.length; i += CH) bin += String.fromCharCode(...bytes.subarray(i, i + CH));
-  return { dataUrl: `data:${file.type || "image/png"};base64,${btoa(bin)}`, bytes };
+  return `data:${mime};base64,${btoa(bin)}`;
+}
+
+export async function fileToDataUrl(file) {
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  return { dataUrl: bytesToDataUrl(bytes, file.type || "image/png"), bytes };
+}
+
+// Remote cards arrive as raw bytes rather than a File, so build the same data URL
+// and try to shrink it first — full Chub card PNGs run 200KB-1MB and every character
+// avatar is persisted into IndexedDB.
+export async function bytesToScaledDataUrl(bytes, mime = "image/png", maxSize = 512) {
+  const raw = bytesToDataUrl(bytes, mime);
+  if (typeof document === "undefined" || !window.createImageBitmap) return raw;
+  try {
+    const bmp = await createImageBitmap(new Blob([bytes], { type: mime }));
+    const scale = Math.min(1, maxSize / Math.max(bmp.width, bmp.height));
+    if (scale >= 1) { bmp.close?.(); return raw; }
+    const w = Math.max(1, Math.round(bmp.width * scale));
+    const h = Math.max(1, Math.round(bmp.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(bmp, 0, 0, w, h);
+    bmp.close?.();
+    const out = canvas.toDataURL(mime === "image/webp" ? "image/webp" : "image/jpeg", 0.88);
+    return out.length > 64 ? out : raw;
+  } catch (e) {
+    return raw;
+  }
 }
 
 export function extractTavernCard(bytes) {

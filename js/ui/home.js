@@ -1,13 +1,18 @@
 import { store } from "../core/store-idb.js";
 import { esc } from "../core/utils.js";
+import { icons } from "./icons.js";
+import { openDiscoverModal } from "./discover.js";
 
 export function renderHome(main, go) {
   const chars = store.characters;
   main.innerHTML = `
   <div class="view-narrow">
     <div class="home-head">
-      <div><h1>Characters</h1><p>${chars.length} saved</p></div>
-      <button id="h-new" class="btn" type="button" aria-label="Create a new character">New character</button>
+      <div><h1>Characters</h1><p id="h-count">${chars.length} saved</p></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <button id="h-browse" class="ghost-btn" style="flex:0 0 auto" type="button" aria-label="Browse online character cards">${icons.globe} <span>Browse online cards</span></button>
+        <button id="h-new" class="btn" type="button" aria-label="Create a new character">New character</button>
+      </div>
     </div>
     <div class="search-row">
       <input id="h-q" type="text" placeholder="Search characters…" aria-label="Search characters" />
@@ -15,10 +20,12 @@ export function renderHome(main, go) {
     <div id="h-grid" class="card-grid" role="list"></div>
   </div>`;
   const grid = main.querySelector("#h-grid");
+  const count = main.querySelector("#h-count");
   const draw = (q = "") => {
     const f = chars.filter((c) => (c.name + " " + c.description + " " + (c.tags || "")).toLowerCase().includes(q.toLowerCase()));
+    if (count) count.textContent = `${store.characters.length} saved`;
     if (!f.length) {
-      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">No characters yet. Create one — or import a SillyTavern PNG card and every field prefills automatically.</div>`;
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">No characters yet. Create one, browse online cards, or import a SillyTavern PNG card and every field prefills automatically.</div>`;
       return;
     }
     grid.innerHTML = f.map((c) => `
@@ -51,6 +58,9 @@ export function renderHome(main, go) {
   draw();
   main.querySelector("#h-q").addEventListener("input", (e) => draw(e.target.value));
   main.querySelector("#h-new").addEventListener("click", () => go.create());
+  main.querySelector("#h-browse").addEventListener("click", () => {
+    openDiscoverModal({ onImported: () => draw(main.querySelector("#h-q")?.value || "") });
+  });
 }
 
 function openCharMenu(char, x, y, go) {

@@ -1,5 +1,6 @@
 import { store } from "../core/store-idb.js";
 import { fetchModels } from "../core/api_v2.js";
+import { testConnection } from "../core/sources/index.js";
 import { FORMATTING_PRESETS } from "../core/presets.js";
 import { toast } from "./toast.js";
 import { esc } from "../core/utils.js";
@@ -56,6 +57,16 @@ export function renderSettings(main, opts = {}) {
     </div>
     <div class="field"><label for="s-stop">Extra stop sequences (one per line)</label>
       <textarea id="s-stop" rows="3" placeholder="&lt;|im_end|&#10;###">${esc((g.extraStop || []).join("\n"))}</textarea></div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+    <h3 style="margin:0 0 4px;font-size:15px">Online card imports</h3>
+    <p class="sub" style="margin:0 0 12px">Browsing chub.ai works directly in the browser. If your network blocks those cross-origin requests, run <code>python serve.py</code> and point this at its built-in relay.</p>
+    <div class="field"><label for="s-proxy">Local proxy URL (optional)</label>
+      <div style="display:flex;gap:8px">
+        <input id="s-proxy" type="url" inputmode="url" placeholder="http://127.0.0.1:8000/api/proxy" value="${esc(g.cardProxy || "")}" autocomplete="off" spellcheck="false" />
+        <button id="s-proxy-test" class="ghost-btn" type="button" aria-label="Test the local proxy">Test</button>
+      </div>
+      <span class="hint" id="s-proxy-hint">Leave empty to talk to card sites directly. The relay only forwards card search and image requests to known card hosts — it never sees your chats, keys or library.</span>
+    </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button id="s-save" class="btn" type="button" aria-label="Save global AI settings">Save settings</button>
       <span id="s-saved" class="hint" role="status"></span>
@@ -101,6 +112,24 @@ export function renderSettings(main, opts = {}) {
     finally { $("s-fetch").disabled = false; }
   });
 
+  $("s-proxy-test").addEventListener("click", async () => {
+    const hint = $("s-proxy-hint");
+    const value = $("s-proxy").value.trim();
+    if (!value) { hint.textContent = "Enter a proxy URL first, e.g. http://127.0.0.1:8000/api/proxy"; return; }
+    try {
+      $("s-proxy-test").disabled = true;
+      hint.textContent = "Testing…";
+      const res = await testConnection(value);
+      hint.textContent = `Proxy works — ${res.ms}ms, ${(res.bytes / 1024).toFixed(0)} KB. Press Save settings to keep it.`;
+      toast("Local proxy reachable.", "ok");
+    } catch (e) {
+      hint.textContent = `${e.message} — is serve.py running?`;
+      toast("Proxy test failed.", "err");
+    } finally {
+      $("s-proxy-test").disabled = false;
+    }
+  });
+
   $("s-save").addEventListener("click", async () => {
     await store.saveGlobal({
       baseUrl: $("s-base").value.trim(), apiKey: $("s-key").value,
@@ -110,6 +139,7 @@ export function renderSettings(main, opts = {}) {
       frequency_penalty: Number($("s-freq").value),
       promptPreset: presetSel.value,
       extraStop: $("s-stop").value.split("\n").map((s) => s.trim()).filter(Boolean),
+      cardProxy: $("s-proxy").value.trim(),
     });
     $("s-saved").textContent = "Settings saved.";
     document.dispatchEvent(new CustomEvent("eui:conn"));

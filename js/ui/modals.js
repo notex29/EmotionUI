@@ -7,17 +7,30 @@ import { toast } from "./toast.js";
 import { esc, uid } from "../core/utils.js";
 import { icons } from "./icons.js";
 
-function shell(title, bodyHtml, label) {
+export function shell(title, bodyHtml, label, opts = {}) {
   const root = document.getElementById("modal-root");
-  root.innerHTML = `<div class="modal-back" id="m-back"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(label || title)}">
+  const opener = document.activeElement;
+  const wide = opts.wide ? " modal-wide" : "";
+  root.innerHTML = `<div class="modal-back" id="m-back"><div class="modal${wide}" role="dialog" aria-modal="true" aria-label="${esc(label || title)}">
     <div class="modal-head"><h2>${esc(title)}</h2><button id="m-x" class="icon-btn" type="button" aria-label="Close dialog" title="Close">${icons.x}</button></div>
     <div>${bodyHtml}</div></div></div>`;
-  const close = () => { root.innerHTML = ""; };
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    document.removeEventListener("keydown", onKey);
+    // Let callers run teardown (abort in-flight requests, clear timers) no
+    // matter which path closed the dialog: X, backdrop, Escape, or close().
+    try { opts.onClose?.(); } catch (e) { console.warn("modal onClose failed", e); }
+    root.innerHTML = "";
+    if (opener && document.contains(opener) && typeof opener.focus === "function") opener.focus();
+  };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
   root.querySelector("#m-x").addEventListener("click", close);
   root.querySelector("#m-back").addEventListener("click", (e) => { if (e.target.id === "m-back") close(); });
-  document.addEventListener("keydown", function esc1(e) { if (e.key === "Escape") { close(); document.removeEventListener("keydown", esc1); } });
+  document.addEventListener("keydown", onKey);
   setTimeout(() => {
-    const focusable = root.querySelector("button, input, select, textarea");
+    const focusable = root.querySelector(opts.focus || "button, input, select, textarea");
     if (focusable) focusable.focus();
   }, 10);
   return { root, close };
