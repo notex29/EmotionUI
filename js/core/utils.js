@@ -1,5 +1,12 @@
 export const uid = (p = "id") => `${p}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+export function replaceMacros(text, charName, userName) {
+  if (typeof text !== "string") return "";
+  return text
+    .replace(/\{\{char\}\}/gi, charName || "Character")
+    .replace(/\{\{user\}\}/gi, userName || "User");
+}
 export const clampStr = (s, n = 2000) => String(s ?? "").slice(0, n);
 export const debounce = (fn, ms = 250) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 export function normalizeBaseUrl(u) {

@@ -1,4 +1,4 @@
-import { keywordsOf, rareKeywordsOf } from "./utils.js";
+import { keywordsOf, rareKeywordsOf, replaceMacros } from "./utils.js";
 import { evaluateLorebook } from "./lorebook.js";
 import { applyFormattingPreset, FORMATTING_PRESETS } from "./presets.js";
 
@@ -35,7 +35,7 @@ export function buildMessages({ char, persona, memory, history, newUserText, end
   const msgs = [...systems, ...convo];
   if (char.postHistoryInstructions?.trim()) msgs.push({ role: "system", content: char.postHistoryInstructions.trim() });
   if (newUserText) msgs.push({ role: "user", content: newUserText });
-  return msgs;
+  return msgs.map(m => ({ ...m, content: replaceMacros(m.content, charName, personaName) }));
 }
 
 export function buildBody({ char, persona, memory, history, newUserText, endpoint }) {

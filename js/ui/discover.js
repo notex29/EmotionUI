@@ -1,6 +1,6 @@
-import { shell } from "./modals.js";
 import { toast, announce } from "./toast.js";
-import { esc, debounce } from "../core/utils.js";
+import { esc, debounce, replaceMacros } from "../core/utils.js";
+import { parseMessageMarkdown } from "../core/markdown.js";
 import { icons } from "./icons.js";
 import { SORTS, searchPageUrl, search as chubSearch } from "../core/sources/chub.js";
 import { importItem, isAbort, proxyBase } from "../core/sources/index.js";
@@ -24,52 +24,42 @@ const SEARCH_DEFAULTS = {
   requireImages: false, requireExampleDialogues: false, first: 30, page: 1,
 };
 
-export function openDiscoverModal({ onImported, persist = true } = {}) {
+export function renderDiscover(main, go, { persist = true } = {}) {
   const state = {
     tab: "chub",
     ...SEARCH_DEFAULTS,
     items: [], hasMore: false, loading: false, error: null,
-    selected: new Set(), detailIdx: null,
+    detailIdx: null,
     urlInput: "", urlItem: null, urlError: null,
-    importing: false,
+    importing: false, savedScroll: 0,
   };
 
   let controller = null;
-  let closed = false;
-  let dupResolve = null;
 
-  // Teardown must run for every close path (X, backdrop, Escape), so it is
-  // registered with the shell rather than wrapping close().
-  const teardown = () => {
-    if (closed) return;
-    closed = true;
-    controller?.abort();
-    controller = null;
-    if (dupResolve) { const r = dupResolve; dupResolve = null; r("skip"); }
-  };
-
-  const { root, close } = shell("Browse online cards", `<div id="dc-body"></div>`, "Browse online character cards", {
-    wide: true,
-    focus: "#dc-q",
-    onClose: teardown,
-  });
-
-  const body = root.querySelector("#dc-body");
-  body.innerHTML = `
-    <div class="src-tabs" role="tablist" aria-label="Card source">
-      <button class="src-tab" role="tab" data-tab="chub" type="button" aria-selected="true">Chub.ai</button>
-      <button class="src-tab" role="tab" data-tab="url" type="button" aria-selected="false">Paste a link</button>
+  main.innerHTML = `
+  <div class="view-narrow">
+    <div id="dc-header">
+      <div class="home-head">
+        <div><h1>Discover</h1><p>Search online character cards</p></div>
+      </div>
+      <div class="src-tabs" role="tablist" aria-label="Card source" style="margin-bottom: 16px;">
+        <button class="src-tab" role="tab" data-tab="chub" type="button" aria-selected="true">Chub.ai</button>
+        <button class="src-tab" role="tab" data-tab="url" type="button" aria-selected="false">Paste a link</button>
+      </div>
+      <p class="hint" style="margin-top:0">Search and download are public — no account, no login. Only the text you type is sent; nothing from your library ever leaves this device.</p>
     </div>
-    <p class="hint" style="margin-top:0">Search and download are public — no account, no login. Only the text you type is sent; nothing from your library ever leaves this device.</p>
-    <div id="dc-panel"></div>
-    <div id="dc-dup" hidden></div>`;
+    <div id="dc-body">
+      <div id="dc-panel"></div>
+    </div>
+  </div>`;
+
+  const body = main.querySelector("#dc-body");
 
   const panel = body.querySelector("#dc-panel");
-  const dupHost = body.querySelector("#dc-dup");
 
-  body.querySelectorAll(".src-tab").forEach((b) => b.addEventListener("click", () => {
+  main.querySelectorAll(".src-tab").forEach((b) => b.addEventListener("click", () => {
     state.tab = b.dataset.tab;
-    body.querySelectorAll(".src-tab").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    main.querySelectorAll(".src-tab").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
     drawPanel();
   }));
 
@@ -104,8 +94,7 @@ export function openDiscoverModal({ onImported, persist = true } = {}) {
   function wireErrorBox(scope) {
     scope.querySelector('[data-fix="web"]')?.addEventListener("click", () => window.open(searchPageUrl(state), "_blank", "noopener"));
     scope.querySelector('[data-fix="proxy"]')?.addEventListener("click", () => {
-      close();
-      document.querySelector('.nav-item[data-view="settings"]')?.click();
+      go.settings();
       toast("Start serve.py, then set the proxy URL to http://127.0.0.1:8000/api/proxy in Settings.", "ok");
     });
   }
@@ -115,7 +104,8 @@ export function openDiscoverModal({ onImported, persist = true } = {}) {
   function drawChub() {
     const proxy = proxyBase();
     panel.innerHTML = `
-      <div class="filter-row">
+      <div id="dc-filters">
+        <div class="filter-row">
         <div class="search-row" style="margin:0;flex:1 1 250px">
           <input id="dc-q" type="search" placeholder="Search chub.ai — name, trope, creator…" aria-label="Search online cards" value="${esc(state.q)}" autocomplete="off" spellcheck="false" />
         </div>
@@ -148,43 +138,38 @@ export function openDiscoverModal({ onImported, persist = true } = {}) {
         <label class="chk"><input type="checkbox" id="dc-ex" ${state.requireExampleDialogues ? "checked" : ""} /> <span>Has example dialogue</span></label>
         ${proxy ? `<span class="pill" title="${esc(proxy)}">via local proxy</span>` : ""}
       </div>
+      </div>
 
-      <div id="dc-detail"></div>
-      <p id="dc-status" class="dc-status" role="status" aria-live="polite"></p>
-      <div id="dc-grid" class="res-grid" role="list" aria-busy="false"></div>
-      <div class="pager">
-        <button id="dc-prev" class="ghost-btn" type="button">Previous</button>
-        <span id="dc-pageno" class="hint">Page ${state.page}</span>
-        <button id="dc-next" class="ghost-btn" type="button">Next</button>
-        <button id="dc-pick-all" class="ghost-btn" type="button">Select all</button>
-        <button id="dc-import-sel" class="btn" type="button" disabled>Import selected (0)</button>
+      <div id="dc-detail" hidden></div>
+      <div id="dc-results">
+        <p id="dc-status" class="dc-status" role="status" aria-live="polite"></p>
+        <div id="dc-grid" class="res-grid" role="list" aria-busy="false"></div>
+        <div class="pager">
+          <button id="dc-prev" class="ghost-btn" type="button">Previous</button>
+          <span id="dc-pageno" class="hint">Page ${state.page}</span>
+          <button id="dc-next" class="ghost-btn" type="button">Next</button>
+        </div>
       </div>`;
 
     const q = $("dc-q");
     const topics = $("dc-topics");
-    const search = () => { state.q = q.value; state.topics = topics.value; state.page = 1; state.detailIdx = null; runSearch({ reset: true }); };
+    const search = () => { state.q = q.value; state.topics = topics.value; state.page = 1; state.detailIdx = null; drawDetail(); runSearch({ reset: true }); };
     const searchDebounced = debounce(search, 450);
 
     q.addEventListener("input", searchDebounced);
     q.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); search(); } });
-    topics.addEventListener("input", debounce(() => { state.topics = topics.value; state.page = 1; runSearch({ reset: true }); }, 600));
+    topics.addEventListener("input", debounce(() => { state.topics = topics.value; state.page = 1; state.detailIdx = null; drawDetail(); runSearch({ reset: true }); }, 600));
     topics.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); search(); } });
     $("dc-go").addEventListener("click", search);
     $("dc-web").addEventListener("click", () => window.open(searchPageUrl(state), "_blank", "noopener"));
-    $("dc-sort").addEventListener("change", (e) => { state.sort = e.target.value; state.page = 1; runSearch({ reset: true }); });
-    $("dc-rating").addEventListener("change", (e) => { state.minAiRating = e.target.value; state.page = 1; runSearch({ reset: true }); });
-    $("dc-size").addEventListener("change", (e) => { state.first = Number(e.target.value); state.page = 1; runSearch({ reset: true }); });
-    $("dc-nsfw").addEventListener("change", (e) => { state.nsfw = e.target.checked; state.page = 1; runSearch({ reset: true }); });
-    $("dc-img").addEventListener("change", (e) => { state.requireImages = e.target.checked; runSearch({ reset: true }); });
-    $("dc-ex").addEventListener("change", (e) => { state.requireExampleDialogues = e.target.checked; runSearch({ reset: true }); });
-    $("dc-prev").addEventListener("click", () => { if (state.page > 1) { state.page -= 1; state.detailIdx = null; runSearch({}); } });
-    $("dc-next").addEventListener("click", () => { state.page += 1; state.detailIdx = null; runSearch({ append: true }); });
-    $("dc-pick-all").addEventListener("click", () => {
-      const allSelected = state.items.length > 0 && state.items.every((i) => state.selected.has(i.id));
-      state.items.forEach((i) => (allSelected ? state.selected.delete(i.id) : state.selected.add(i.id)));
-      drawGrid();
-    });
-    $("dc-import-sel").addEventListener("click", () => importMany(state.items.filter((i) => state.selected.has(i.id))));
+    $("dc-sort").addEventListener("change", (e) => { state.sort = e.target.value; state.page = 1; state.detailIdx = null; drawDetail(); runSearch({ reset: true }); });
+    $("dc-rating").addEventListener("change", (e) => { state.minAiRating = e.target.value; state.page = 1; state.detailIdx = null; drawDetail(); runSearch({ reset: true }); });
+    $("dc-size").addEventListener("change", (e) => { state.first = Number(e.target.value); state.page = 1; state.detailIdx = null; drawDetail(); runSearch({ reset: true }); });
+    $("dc-nsfw").addEventListener("change", (e) => { state.nsfw = e.target.checked; state.page = 1; state.detailIdx = null; drawDetail(); runSearch({ reset: true }); });
+    $("dc-img").addEventListener("change", (e) => { state.requireImages = e.target.checked; state.detailIdx = null; drawDetail(); runSearch({ reset: true }); });
+    $("dc-ex").addEventListener("change", (e) => { state.requireExampleDialogues = e.target.checked; state.detailIdx = null; drawDetail(); runSearch({ reset: true }); });
+    $("dc-prev").addEventListener("click", () => { if (state.page > 1) { state.page -= 1; state.detailIdx = null; drawDetail(); runSearch({}); } });
+    $("dc-next").addEventListener("click", () => { state.page += 1; state.detailIdx = null; drawDetail(); runSearch({ append: true }); });
 
     drawGrid();
   }
@@ -210,22 +195,21 @@ export function openDiscoverModal({ onImported, persist = true } = {}) {
 
     grid.innerHTML = state.items.map((i, idx) => {
       const thumb = safeRemoteUrl(i.thumb || "");
-      const picked = state.selected.has(i.id);
       const imported = !!i._imported;
-      return `<article class="res-card" role="listitem" data-idx="${idx}">
-        <button class="res-open" type="button" data-act="open" aria-label="Preview ${esc(i.name)}">
-          ${thumb ? `<img class="res-thumb" src="${esc(thumb)}" alt="" loading="lazy" decoding="async" />` : `<span class="res-thumb res-thumb-fallback" aria-hidden="true">${esc((i.name || "?").slice(0, 1).toUpperCase())}</span>`}
-          <span class="res-meta">
-            <span class="res-name">${esc(i.name || "Unnamed")}</span>
+      return `<article class="res-card" role="listitem" data-idx="${idx}" style="display:flex;flex-direction:column;">
+        <div class="res-open" tabindex="0" aria-label="${esc(i.name || "Unnamed")}, by ${esc(i.creator || "Unknown")}. ${esc((i.description || "").slice(0, 100))}. Tags: ${i.tags.slice(0,5).join(", ")}">
+          ${thumb ? `<img class="res-thumb" src="${esc(thumb)}" alt="" loading="lazy" decoding="async" aria-hidden="true" />` : `<span class="res-thumb res-thumb-fallback" aria-hidden="true">${esc((i.name || "?").slice(0, 1).toUpperCase())}</span>`}
+          <span class="res-meta" aria-hidden="true">
+            <span class="res-name" style="font-size:16px;font-weight:700">${esc(i.name || "Unnamed")}</span>
             <span class="res-creator">${i.creator ? `by @${esc(i.creator)}` : ""}${i.nsfw ? " · NSFW" : ""}</span>
-            ${i.description ? `<span class="res-desc">${esc(i.description.slice(0, 200))}</span>` : ""}
+            ${i.description ? `<span class="res-desc">${esc(replaceMacros(i.description, i.shortName || i.name).slice(0, 200))}</span>` : ""}
             ${i.tags.length ? `<span class="chip-row">${i.tags.slice(0, 5).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</span>` : ""}
             ${statLine(i) ? `<span class="res-stats">${esc(statLine(i))}</span>` : ""}
           </span>
-        </button>
-        <div class="res-actions">
-          <label class="res-pick"><input type="checkbox" data-act="pick" ${picked ? "checked" : ""} aria-label="Select ${esc(i.name)}" /></label>
-          <button class="mini-btn" data-act="import" type="button" ${imported || state.importing ? "disabled" : ""} aria-label="Import ${esc(i.name)}">${imported ? "Imported" : "Import"}</button>
+        </div>
+        <div class="res-actions" style="display:flex;gap:8px;padding-top:12px;margin-top:auto">
+          <button class="btn" style="flex:1" data-act="import" type="button" ${imported || state.importing ? "disabled" : ""} aria-label="Start chatting with ${esc(i.name || "Character")}">${imported ? "Imported" : "Start chatting"}</button>
+          <button class="ghost-btn" style="flex:1" data-act="open" type="button" aria-label="About ${esc(i.name || "Character")}">About</button>
         </div>
       </article>`;
     }).join("");
@@ -236,47 +220,68 @@ export function openDiscoverModal({ onImported, persist = true } = {}) {
       const item = state.items[idx];
       if (!item) return;
       const act = el.dataset.act;
-      if (act === "open") { state.detailIdx = state.detailIdx === idx ? null : idx; drawDetail(); }
-      else if (act === "import") { state.selected.delete(item.id); importMany([item]); }
-      else if (act === "pick") { if (el.checked) state.selected.add(item.id); else state.selected.delete(item.id); updateSelBar(); }
+      if (act === "open") { 
+        state.savedScroll = document.getElementById("main-view").scrollTop;
+        state.detailIdx = idx; 
+        drawDetail(); 
+        document.getElementById("main-view").scrollTop = 0;
+      }
+      else if (act === "import") { importMany([item]); }
     }));
-    updateSelBar();
-  }
-
-  function updateSelBar() {
-    const btn = $("dc-import-sel");
-    if (!btn) return;
-    const n = state.selected.size;
-    btn.textContent = `Import selected (${n})`;
-    btn.disabled = n === 0 || state.importing;
-    const all = $("dc-pick-all");
-    if (all) all.textContent = state.items.length && state.items.every((i) => state.selected.has(i.id)) ? "Clear selection" : "Select all";
   }
 
   function drawDetail() {
     const host = $("dc-detail");
+    const results = $("dc-results");
+    const filters = $("dc-filters");
+    const header = main.querySelector("#dc-header");
     if (!host) return;
     const item = state.detailIdx != null ? state.items[state.detailIdx] : null;
-    if (!item) { host.innerHTML = ""; return; }
-    host.innerHTML = `<div class="res-detail">
-      <div class="res-detail-head">
-        <strong>${esc(item.name || "Unnamed")}</strong>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" data-d="import" type="button">Import this card</button>
-          <a class="ghost-btn" style="flex:0 0 auto;display:inline-flex;align-items:center;text-decoration:none" href="${esc(item.pageUrl)}" target="_blank" rel="noopener noreferrer">Open page</a>
-          <button class="ghost-btn" style="flex:0 0 auto" data-d="close" type="button">Close</button>
+    if (!item) { 
+      host.hidden = true; 
+      host.innerHTML = ""; 
+      if (results) results.hidden = false; 
+      if (filters) filters.hidden = false;
+      if (header) header.hidden = false;
+      return; 
+    }
+    
+    if (results) results.hidden = true;
+    if (filters) filters.hidden = true;
+    if (header) header.hidden = true;
+    host.hidden = false;
+    const thumb = safeRemoteUrl(item.thumb || "");
+    
+    host.innerHTML = `<div class="res-detail" style="border:none;background:var(--bg-1);padding:0;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <button class="ghost-btn" data-d="close" type="button" aria-label="Back to results">${icons.arrowLeft || "Back"}</button>
+        <h2 style="margin:0">Character details</h2>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+        ${thumb ? `<img src="${esc(thumb)}" style="width:120px;height:120px;border-radius:24px;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.2)" alt="">` : ""}
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:24px;font-weight:700;color:var(--txt-1);margin-bottom:4px;">${esc(item.name || "Unnamed")}</div>
+          <div class="hint" style="margin-bottom:8px;">${esc(item.creator ? `by @${item.creator}` : "")}${statLine(item) ? ` · ${esc(statLine(item))}` : ""}</div>
+          ${item.tags.length ? `<div class="chip-row" style="margin-bottom:12px;">${item.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+            <button class="btn" style="background:var(--accent);color:#fff" data-d="import" type="button" ${state.importing ? "disabled" : ""}>Start chatting</button>
+            <a class="ghost-btn" style="display:inline-flex;align-items:center;text-decoration:none" href="${esc(item.pageUrl)}" target="_blank" rel="noopener noreferrer">Open on chub.ai</a>
+          </div>
         </div>
       </div>
-      <div class="hint">${esc(item.creator ? `by @${item.creator}` : "")}${statLine(item) ? ` · ${esc(statLine(item))}` : ""}</div>
-      ${item.description ? `<p class="res-detail-desc">${esc(item.description)}</p>` : `<p class="hint" style="margin:6px 0 0">Full description and first message load with the card on import.</p>`}
-      ${item.tags.length ? `<div class="chip-row" style="margin-top:8px">${item.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
+      ${item.description ? `<div class="res-detail-desc markdown-body" style="margin-top:24px;font-size:15px;line-height:1.6;color:var(--txt-1);">${parseMessageMarkdown(replaceMacros(item.description, item.shortName || item.name))}</div>` : `<p class="hint" style="margin:24px 0 0">Full description and first message load with the card on import.</p>`}
     </div>`;
-    host.querySelector('[data-d="close"]').addEventListener("click", () => { state.detailIdx = null; drawDetail(); });
+    
+    host.querySelector('[data-d="close"]').addEventListener("click", () => { 
+      state.detailIdx = null; 
+      drawDetail(); 
+      document.getElementById("main-view").scrollTop = state.savedScroll || 0;
+    });
     host.querySelector('[data-d="import"]').addEventListener("click", () => importMany([item]));
   }
 
   async function runSearch({ reset = false, append = false } = {}) {
-    if (reset) { state.page = 1; state.selected.clear(); }
+    if (reset) { state.page = 1; }
     controller?.abort();
     controller = new AbortController();
     const signal = controller.signal;
@@ -300,7 +305,6 @@ export function openDiscoverModal({ onImported, persist = true } = {}) {
         first: state.first,
         page: state.page,
       }, { signal });
-      if (closed) return;
       state.hasMore = res.hasMore;
       state.items = append ? state.items.concat(res.items) : res.items;
       state.loading = false;
@@ -308,7 +312,7 @@ export function openDiscoverModal({ onImported, persist = true } = {}) {
         ? `${res.items.length} card${res.items.length === 1 ? "" : "s"} found${res.total > res.items.length ? ` (of about ${res.total.toLocaleString()})` : ""}.`
         : "No cards matched.", res.items.length ? "" : "err");
     } catch (e) {
-      if (isAbort(e) || closed) return;
+      if (isAbort(e)) return;
       state.loading = false;
       state.error = e;
       setStatus(e?.message || "Search failed.", "err");
@@ -375,24 +379,10 @@ export function openDiscoverModal({ onImported, persist = true } = {}) {
 
   // ------------------------------------------------------------------ import
 
-  function askDuplicate(existing, fresh) {
-    return new Promise((resolve) => {
-      dupResolve = (v) => { dupResolve = null; dupHost.hidden = true; dupHost.innerHTML = ""; resolve(v); };
-      dupHost.innerHTML = `<div class="dup-ask" role="alertdialog" aria-label="Duplicate character">
-        <div><strong>${esc(fresh.name || "This card")}</strong> is already in your library${existing?.updatedAt ? ` <span class="hint">(updated ${esc(new Date(existing.updatedAt).toLocaleDateString())})</span>` : ""}.</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <button class="btn" data-a="update" type="button">Update existing</button>
-          <button class="ghost-btn" style="flex:0 0 auto" data-a="new" type="button">Import as new</button>
-          <button class="ghost-btn" style="flex:0 0 auto" data-a="skip" type="button">Skip</button>
-        </div>
-      </div>`;
-      dupHost.hidden = false;
-      dupHost.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => dupResolve?.(b.dataset.a), { once: true }));
-    });
-  }
+
 
   async function importMany(items) {
-    if (!items.length || state.importing || closed) return;
+    if (!items.length || state.importing) return;
     state.importing = true;
     controller?.abort();
     let done = 0, skipped = 0;
@@ -400,35 +390,37 @@ export function openDiscoverModal({ onImported, persist = true } = {}) {
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      setStatus(`Importing ${i + 1} of ${items.length} — ${item.name || "card"}…`);
+      setStatus(`Importing ${item.name || "card"}…`);
       try {
         const res = await importItem(item, {
           persist,
-          onStage: (s) => setStatus(`${s} (${i + 1}/${items.length})`),
-          resolveDuplicate: persist ? askDuplicate : undefined,
+          onStage: (s) => setStatus(`${s}`),
         });
         if (res.skipped) { skipped += 1; continue; }
         item._imported = true;
         done += 1;
-        onImported?.(persist ? res.saved : res.character, res.updated);
+        
+        // As soon as imported, navigate to chat!
+        const charId = res.saved ? res.saved.id : (res.character ? res.character.id : null);
+        if (charId) {
+          go.chat(charId);
+          toast("Character imported!", "ok");
+          return;
+        }
       } catch (e) {
-        if (closed) break;
         failed.push(`${item.name || "card"}: ${e?.message || e}`);
       }
     }
 
     state.importing = false;
-    const parts = [];
-    if (done) parts.push(`${done} card${done === 1 ? "" : "s"} imported`);
-    if (skipped) parts.push(`${skipped} skipped`);
-    if (failed.length) parts.push(`${failed.length} failed`);
-    if (parts.length) {
-      setStatus(parts.join(" · "), failed.length ? "err" : "");
-      toast(parts.join(" · ") + (failed.length ? ` — ${failed[0]}` : ""), failed.length ? "err" : "ok");
+    if (failed.length) {
+      setStatus("Import failed", "err");
+      toast("Import failed: " + failed[0], "err");
     } else {
       setStatus("");
     }
-    if (!closed) { drawGrid(); drawDetail(); }
+    drawGrid();
+    drawDetail();
   }
 
   // ------------------------------------------------------------------- mount

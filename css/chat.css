@@ -40,7 +40,7 @@
 .sidebar.is-hidden ~ .main-col .composer, body.side-hidden .composer { left: 0; }
 .composer-inner { 
   max-width: 860px; margin: 0 auto; 
-  background: linear-gradient(135deg, rgba(20,24,36,0.95) 0%, rgba(35,20,50,0.92) 100%);
+  background: linear-gradient(135deg, rgba(20,24,36,0.45) 0%, rgba(35,20,50,0.42) 100%);
   border: 1px solid rgba(255,255,255,0.08); 
   border-radius: 28px; padding: 2px 8px; 
   backdrop-filter: blur(16px);
@@ -58,6 +58,18 @@
 .send-btn svg { width: 22px; height: 22px; }
 .send-btn:disabled { opacity: .5; cursor: wait; }
 .kbd-hint { font-size: 11.5px; color: var(--txt-2); }
+
+/* Thinking Process */
+.think-box { margin: 12px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-1); overflow: hidden; }
+.think-box summary { cursor: pointer; padding: 10px 14px; font-weight: 600; font-size: 13px; color: var(--txt-2); user-select: none; transition: background 0.2s, color 0.2s; list-style: none; display: flex; align-items: center; }
+.think-box summary::-webkit-details-marker { display: none; }
+.think-box summary::before { content: "▶"; font-size: 10px; margin-right: 8px; transition: transform 0.2s; }
+.think-box[open] summary::before { transform: rotate(90deg); }
+.think-box[open] summary { background: var(--bg-2); border-bottom: 1px solid var(--line); color: var(--txt-1); }
+.think-content { padding: 14px; font-size: 13.5px; color: var(--txt-2); line-height: 1.5; white-space: pre-wrap; }
+.think-content p { margin: 0 0 10px 0; }
+.think-content p:last-child { margin: 0; }
+
 @media (max-width: 900px) { .composer { left: 0; } }
 @media (max-width: 560px) {
   .msg .bubble { max-width: calc(100% - 36px); padding: 10px 12px; }

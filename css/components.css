@@ -138,7 +138,7 @@
   padding: 12px; margin: 10px 0; display: grid; gap: 6px;
 }
 .res-detail-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.res-detail-desc { margin: 0; font-size: 13.5px; color: var(--txt-1); white-space: pre-wrap; max-height: 220px; overflow: auto; }
+.res-detail-desc { margin: 0; font-size: 13.5px; color: var(--txt-1); white-space: pre-wrap; }
 .pager { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .pager .btn, .pager .ghost-btn { flex: 0 0 auto; }
 .dup-ask {

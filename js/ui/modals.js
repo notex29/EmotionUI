@@ -179,9 +179,10 @@ export function openChatMenu(char, acts) {
 }
 
 export function openChatCustomizerModal(char) {
-  const cfg = char.extensions?.chatConfig || { aiBg: "transparent", userBg: "transparent", autoText: true, aiText: "", userText: "", chatBgColor: "", chatBgImage: "", composerBg: "", composerTxt: "", inputBg: "", inputTxt: "", inputHint: "", lineSpacing: 1.5, letterSpacing: 0 };
+  const cfg = char.extensions?.chatConfig || { aiBg: "transparent", userBg: "transparent", autoText: true, aiText: "", userText: "", chatBgColor: "", chatBgImage: "", composerBg: "", composerTxt: "", inputBg: "", inputTxt: "", inputHint: "", lineSpacing: 1.5, letterSpacing: 0, composerOp: 0.45, composerW: 860, composerH: 155 };
   
   const root = document.getElementById("modal-root");
+  const h = (v, f) => (v && typeof v === "string" && v.startsWith("#")) ? (v.length > 7 ? v.slice(0, 7) : (v.length === 4 ? "#"+v[1]+v[1]+v[2]+v[2]+v[3]+v[3] : v)) : f;
   root.innerHTML = `
     <div class="fs-modal-back" id="cc-back">
       <div class="fs-modal-head">
@@ -193,7 +194,7 @@ export function openChatCustomizerModal(char) {
           <div class="field">
             <label>Chat Background Color</label>
             <div style="display:flex;gap:8px">
-              <input type="color" id="cc-bg-color" value="${cfg.chatBgColor || "#0e1116"}" />
+              <input type="color" id="cc-bg-color" value="${h(cfg.chatBgColor, "#0e1116")}" />
               <input type="text" id="cc-bg-color-txt" value="${cfg.chatBgColor || ""}" placeholder="#0e1116 or transparent" style="flex:1;min-width:0" />
             </div>
           </div>
@@ -210,14 +211,14 @@ export function openChatCustomizerModal(char) {
           <div class="field">
             <label>AI Bubble Background Color</label>
             <div style="display:flex;gap:8px">
-              <input type="color" id="cc-ai-bg" value="${cfg.aiBg || "#1b2334"}" />
+              <input type="color" id="cc-ai-bg" value="${h(cfg.aiBg, "#1b2334")}" />
               <input type="text" id="cc-ai-bg-txt" value="${cfg.aiBg || ""}" placeholder="#1b2334 or transparent" style="flex:1;min-width:0" />
             </div>
           </div>
           <div class="field">
             <label>User Bubble Background Color</label>
             <div style="display:flex;gap:8px">
-              <input type="color" id="cc-user-bg" value="${cfg.userBg || "#6a4dff"}" />
+              <input type="color" id="cc-user-bg" value="${h(cfg.userBg, "#6a4dff")}" />
               <input type="text" id="cc-user-bg-txt" value="${cfg.userBg || ""}" placeholder="#6a4dff or transparent" style="flex:1;min-width:0" />
             </div>
           </div>
@@ -233,14 +234,14 @@ export function openChatCustomizerModal(char) {
             <div class="field">
               <label>AI Text Color</label>
               <div style="display:flex;gap:8px">
-                <input type="color" id="cc-ai-txt" value="${cfg.aiText || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
+                <input type="color" id="cc-ai-txt" value="${h(cfg.aiText, "#ffffff")}" ${cfg.autoText ? "disabled" : ""} />
                 <input type="text" id="cc-ai-txt-val" value="${cfg.aiText || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
               </div>
             </div>
             <div class="field">
               <label>User Text Color</label>
               <div style="display:flex;gap:8px">
-                <input type="color" id="cc-user-txt" value="${cfg.userText || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
+                <input type="color" id="cc-user-txt" value="${h(cfg.userText, "#ffffff")}" ${cfg.autoText ? "disabled" : ""} />
                 <input type="text" id="cc-user-txt-val" value="${cfg.userText || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
               </div>
             </div>
@@ -252,21 +253,21 @@ export function openChatCustomizerModal(char) {
           <div class="field">
             <label>Composer Background</label>
             <div style="display:flex;gap:8px">
-              <input type="color" id="cc-comp-bg" value="${cfg.composerBg || "#000000"}" />
+              <input type="color" id="cc-comp-bg" value="${h(cfg.composerBg, "#000000")}" />
               <input type="text" id="cc-comp-bg-txt" value="${cfg.composerBg || ""}" placeholder="#000000 or transparent" style="flex:1;min-width:0" />
             </div>
           </div>
           <div class="field">
             <label>Composer Icons Color</label>
             <div style="display:flex;gap:8px">
-              <input type="color" id="cc-comp-txt" value="${cfg.composerTxt || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
+              <input type="color" id="cc-comp-txt" value="${h(cfg.composerTxt, "#ffffff")}" ${cfg.autoText ? "disabled" : ""} />
               <input type="text" id="cc-comp-txt-val" value="${cfg.composerTxt || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
             </div>
           </div>
           <div class="field">
             <label>Input Box Background</label>
             <div style="display:flex;gap:8px">
-              <input type="color" id="cc-in-bg" value="${cfg.inputBg || "#1b2334"}" />
+              <input type="color" id="cc-in-bg" value="${h(cfg.inputBg, "#1b2334")}" />
               <input type="text" id="cc-in-bg-txt" value="${cfg.inputBg || ""}" placeholder="#1b2334 or transparent" style="flex:1;min-width:0" />
             </div>
           </div>
@@ -274,7 +275,7 @@ export function openChatCustomizerModal(char) {
             <div class="field">
               <label>Input Text Color</label>
               <div style="display:flex;gap:8px">
-                <input type="color" id="cc-in-txt" value="${cfg.inputTxt || "#ffffff"}" ${cfg.autoText ? "disabled" : ""} />
+                <input type="color" id="cc-in-txt" value="${h(cfg.inputTxt, "#ffffff")}" ${cfg.autoText ? "disabled" : ""} />
                 <input type="text" id="cc-in-txt-val" value="${cfg.inputTxt || ""}" placeholder="#ffffff" style="flex:1;min-width:0" ${cfg.autoText ? "disabled" : ""} />
               </div>
             </div>
@@ -287,6 +288,20 @@ export function openChatCustomizerModal(char) {
             </div>
           </div>
 
+          <hr style="border:0;border-top:1px solid var(--line);margin:4px 0" />
+          <h3 style="margin:0;font-size:15px">Composer Sizing & Opacity</h3>
+          <div class="field">
+            <label>Composer Opacity: <span id="cc-comp-op-val">${cfg.composerOp !== undefined ? cfg.composerOp : 0.45}</span></label>
+            <input type="range" id="cc-comp-op" min="0" max="1" step="0.05" value="${cfg.composerOp !== undefined ? cfg.composerOp : 0.45}" style="width:100%" />
+          </div>
+          <div class="field">
+            <label>Composer Width: <span id="cc-comp-w-val">${cfg.composerW || 860}px</span></label>
+            <input type="range" id="cc-comp-w" min="400" max="2000" step="10" value="${cfg.composerW || 860}" style="width:100%" />
+          </div>
+          <div class="field">
+            <label>Composer Max Height: <span id="cc-comp-h-val">${cfg.composerH || 155}px</span></label>
+            <input type="range" id="cc-comp-h" min="50" max="800" step="5" value="${cfg.composerH || 155}" style="width:100%" />
+          </div>
           <hr style="border:0;border-top:1px solid var(--line);margin:4px 0" />
 
           <h3 style="margin:0;font-size:15px">Text Spacing</h3>
@@ -427,6 +442,17 @@ export function openChatCustomizerModal(char) {
   
   lineSp.addEventListener("input", () => { lineVal.textContent = lineSp.value; updatePreview(); });
   letSp.addEventListener("input", () => { letVal.textContent = letSp.value + "px"; updatePreview(); });
+  
+  const compOp = root.querySelector("#cc-comp-op");
+  const compOpVal = root.querySelector("#cc-comp-op-val");
+  const compW = root.querySelector("#cc-comp-w");
+  const compWVal = root.querySelector("#cc-comp-w-val");
+  const compH = root.querySelector("#cc-comp-h");
+  const compHVal = root.querySelector("#cc-comp-h-val");
+  
+  compOp.addEventListener("input", () => { compOpVal.textContent = compOp.value; updatePreview(); });
+  compW.addEventListener("input", () => { compWVal.textContent = compW.value + "px"; updatePreview(); });
+  compH.addEventListener("input", () => { compHVal.textContent = compH.value + "px"; updatePreview(); });
 
   function getContrast(hex) {
     if (!hex || hex === "transparent") return "#ffffff";
@@ -463,8 +489,19 @@ export function openChatCustomizerModal(char) {
       
       pAi.style.background = aiBgT.value || "transparent";
       pUsr.style.background = usrBgT.value || "transparent";
-      pComp.style.background = compBgT.value || "transparent";
-      pCompWrapper.style.background = "transparent"; // override original linear gradient
+      pCompWrapper.style.background = "transparent";
+      
+      const cop = parseFloat(compOp.value);
+      if (compBgT.value.trim() && compBgT.value.trim() !== "transparent") {
+        pComp.style.background = compBgT.value;
+      } else {
+        pComp.style.background = `linear-gradient(135deg, rgba(20,24,36,${cop}) 0%, rgba(35,20,50,${Math.max(0, cop - 0.03)}) 100%)`;
+      }
+      
+      pCompWrapper.style.maxWidth = compW.value + "px";
+      pCompWrapper.style.margin = "0 auto";
+      pIn.style.minHeight = compH.value + "px";
+      pIn.style.maxHeight = compH.value + "px";
       
       if (inBgT.value.trim() !== "" && inBgT.value.trim() !== "transparent") {
         pIn.style.backgroundColor = inBgT.value;
@@ -514,7 +551,10 @@ export function openChatCustomizerModal(char) {
       inputTxt: tInT.value.trim(),
       inputHint: tHintT.value.trim(),
       lineSpacing: parseFloat(lineSp.value) || 1.5,
-      letterSpacing: parseFloat(letSp.value) || 0
+      letterSpacing: parseFloat(letSp.value) || 0,
+      composerOp: parseFloat(compOp.value),
+      composerW: parseInt(compW.value, 10),
+      composerH: parseInt(compH.value, 10)
     };
     await store.saveCharacter(char);
     close();

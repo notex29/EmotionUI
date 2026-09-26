@@ -1,6 +1,7 @@
 import { initStorage, store } from "./core/store-idb.js";
 import { paintStaticIcons, icons } from "./ui/icons.js";
 import { renderHome } from "./ui/home.js";
+import { renderDiscover } from "./ui/discover.js";
 import { renderSettings } from "./ui/settingsView.js";
 import { renderCharacterForm } from "./ui/characterForm.js";
 import { renderChat } from "./ui/chat.js";
@@ -26,6 +27,7 @@ window.addEventListener("popstate", () => {
   if (currentHash.startsWith("#chat-")) go.chat(currentHash.split("-")[1], true);
   else if (currentHash.startsWith("#edit-")) go.edit(currentHash.split("-")[1], true);
   else if (currentHash === "#create") go.create(true);
+  else if (currentHash === "#discover") go.discover(true);
   else go.home(true);
 });
 
@@ -54,6 +56,11 @@ export const go = {
   create(fromPop = false) { 
     if (!fromPop) routeState("#create");
     setView("create"); store.saveGlobal({ activeView: "create", activeCharId: null }); renderCharacterForm(main, go, null); title.textContent = "Create character"; hideChatTools(); 
+    setSidebar(false);
+  },
+  discover(fromPop = false) {
+    if (!fromPop) routeState("#discover");
+    setView("discover"); store.saveGlobal({ activeView: "discover", activeCharId: null }); renderDiscover(main, go); title.textContent = "Discover"; hideChatTools();
     setSidebar(false);
   },
   edit(id, fromPop = false) { 
@@ -99,6 +106,7 @@ function hideChatTools() {
 
 function setView(v) {
   view = v;
+  main.scrollTop = 0;
   document.querySelectorAll(".nav-item").forEach((b) => {
     const on = b.dataset.view === v || (v === "create" && b.dataset.view === "create");
     b.classList.toggle("is-active", b.dataset.view === v);
@@ -168,7 +176,7 @@ async function boot() {
   renderSidebarChars();
 
   document.querySelectorAll(".nav-item").forEach((b) => b.addEventListener("click", () => {
-    ({ home: go.home, create: go.create, personas: go.personas, settings: go.settings })[b.dataset.view]();
+    ({ home: go.home, discover: go.discover, create: go.create, personas: go.personas, settings: go.settings })[b.dataset.view]();
     if (window.innerWidth <= 900) setSidebar(true);
   }));
   document.getElementById("btn-collapse-side").addEventListener("click", () => setSidebar(true));
@@ -202,9 +210,11 @@ async function boot() {
   if (location.hash.startsWith("#chat-")) go.chat(location.hash.split("-")[1], true);
   else if (location.hash.startsWith("#edit-")) go.edit(location.hash.split("-")[1], true);
   else if (location.hash === "#create") go.create(true);
+  else if (location.hash === "#discover") go.discover(true);
   else if (v === "chat" && id) go.chat(id);
   else if (v === "edit" && id) go.edit(id);
   else if (v === "create") go.create();
+  else if (v === "discover") go.discover();
   else go.home();
 }
 boot();

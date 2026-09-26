@@ -9,6 +9,7 @@ export const icons = {
   menu: P(`<path d="M4 7h16M4 12h16M4 17h16"/>`),
   dots: P(`<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>`),
   x: P(`<path d="M6 6l12 12M18 6 6 18"/>`),
+  arrowLeft: P(`<path d="M19 12H5M12 19l-7-7 7-7"/>`),
   collapse: P(`<path d="M14 6l-6 6 6 6"/>`),
   edit: P(`<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>`),
   trash: P(`<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>`),

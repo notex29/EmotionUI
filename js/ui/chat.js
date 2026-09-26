@@ -5,7 +5,7 @@ import { summarizeMemory } from "../core/memory.js";
 import { parseMessageMarkdown } from "../core/markdown.js";
 import { openPersonasModal, openMemoryModal, openCharSettingsModal, openChatMenu, openChatCustomizerModal } from "./modals.js";
 import { toast } from "./toast.js";
-import { esc, uid } from "../core/utils.js";
+import { esc, uid, replaceMacros } from "../core/utils.js";
 import { icons } from "./icons.js";
 
 let currentCharId = null;
@@ -28,7 +28,7 @@ export async function renderChat(main, go, charId) {
   <div class="chat-wrap">
     <div class="chat-head">
       ${char.avatar ? `<img src="${char.avatar}" alt="${esc(char.name)} avatar" />` : `<div class="av" style="width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#5b4bff,#27b3e6);display:flex;align-items:center;justify-content:center;font-weight:800" aria-hidden="true">${esc(char.name.slice(0, 1))}</div>`}
-      <div class="sp"><div class="nm">${esc(char.name)}</div><div class="ds">${esc(char.description || char.personality || "")}</div></div>
+      <div class="sp"><div class="nm">${esc(char.name)}</div><div class="ds">${esc(replaceMacros(char.description || char.personality || "", char.shortName || char.name, store.activePersona()?.name))}</div></div>
       <button id="ch-edit" class="icon-btn" type="button" aria-label="Edit ${esc(char.name)}" title="Edit character">${icons.edit}</button>
     </div>
     <div id="chat-log" aria-live="polite" aria-label="Conversation with ${esc(char.name)}"></div>
@@ -140,11 +140,14 @@ function applyChatConfig(char) {
     styleEl.id = "chat-custom-style";
     document.head.appendChild(styleEl);
   }
-  const cfg = char.extensions?.chatConfig;
-  if (!cfg) {
-    styleEl.innerHTML = "";
-    return;
-  }
+  const isCustomized = !!char.extensions?.chatConfig;
+  const cfg = char.extensions?.chatConfig || {};
+  
+  const aiBg = isCustomized ? cfg.aiBg : "transparent";
+  const userBg = isCustomized ? cfg.userBg : "transparent";
+  const chatBgImage = isCustomized ? cfg.chatBgImage : "default-bg.png";
+  const chatBgColor = isCustomized ? cfg.chatBgColor : "";
+  const autoText = isCustomized ? cfg.autoText : true;
   
   const getLum = (hex) => {
     if (!hex || hex === "transparent") return 0;
@@ -157,50 +160,60 @@ function applyChatConfig(char) {
   const getTxt = (bgHex, auto, manTxt) => auto ? (bgHex === "transparent" ? "#fff" : (getLum(bgHex) > 128 ? "#000" : "#fff")) : (manTxt || "#fff");
   
   let css = "";
-  if (cfg.aiBg) {
-    css += `.msg.ai .bubble { background: ${cfg.aiBg} !important; border-color: ${cfg.aiBg} !important; color: ${getTxt(cfg.aiBg, cfg.autoText, cfg.aiText)} !important; }\n`;
-    css += `.msg.ai .who { color: ${getTxt(cfg.aiBg, cfg.autoText, cfg.aiText)} !important; opacity: 0.8; }\n`;
+  if (aiBg) {
+    css += `.main-col .msg.ai .bubble { background: ${aiBg} !important; border-color: ${aiBg === "transparent" ? "rgba(255,255,255,0.1)" : aiBg} !important; color: ${getTxt(aiBg, autoText, cfg.aiText)} !important; }\n`;
+    css += `.main-col .msg.ai .who { color: ${getTxt(aiBg, autoText, cfg.aiText)} !important; opacity: 0.8; }\n`;
   }
-  if (cfg.userBg) {
-    css += `.msg.user .bubble { background: ${cfg.userBg} !important; border-color: ${cfg.userBg} !important; color: ${getTxt(cfg.userBg, cfg.autoText, cfg.userText)} !important; }\n`;
-    css += `.msg.user .who { color: ${getTxt(cfg.userBg, cfg.autoText, cfg.userText)} !important; opacity: 0.8; }\n`;
+  if (userBg) {
+    css += `.main-col .msg.user .bubble { background: ${userBg} !important; border-color: ${userBg === "transparent" ? "rgba(255,255,255,0.1)" : userBg} !important; color: ${getTxt(userBg, autoText, cfg.userText)} !important; }\n`;
+    css += `.main-col .msg.user .who { color: ${getTxt(userBg, autoText, cfg.userText)} !important; opacity: 0.8; }\n`;
   }
   
-  if (cfg.chatBgImage) {
-    css += `body:has(#chat-log) { background: url(${cfg.chatBgImage}) center/cover fixed !important; }\n`;
-    css += `.chat-wrap { background: transparent !important; }\n`;
-    css += `.composer { background: linear-gradient(180deg, transparent, rgba(0,0,0,0.8) 30%) !important; }\n`;
-  } else if (cfg.chatBgColor) {
-    css += `body:has(#chat-log) { background: ${cfg.chatBgColor} !important; }\n`;
-    css += `.composer { background: linear-gradient(180deg, transparent, ${cfg.chatBgColor} 30%) !important; }\n`;
+  if (chatBgImage) {
+    css += `body:has(#chat-main) { background: url(${chatBgImage}) center/cover fixed !important; }\n`;
+    css += `.main-col .chat-wrap { background: transparent !important; }\n`;
+    css += `.main-col .composer { background: linear-gradient(180deg, transparent, rgba(0,0,0,0.8) 30%) !important; }\n`;
+  } else if (chatBgColor) {
+    css += `body:has(#chat-main) { background: ${chatBgColor} !important; }\n`;
+    css += `.main-col .composer { background: linear-gradient(180deg, transparent, ${chatBgColor} 30%) !important; }\n`;
   }
 
-  if (cfg.composerBg) {
-    css += `.composer { background: ${cfg.composerBg} !important; border-top: none; }\n`;
+  const compOp = cfg.composerOp !== undefined ? cfg.composerOp : 0.45;
+  const compW = cfg.composerW || 860;
+  const compH = cfg.composerH || 155;
+
+  if (cfg.composerBg && cfg.composerBg !== "transparent") {
+    css += `.main-col .composer-inner { background: ${cfg.composerBg} !important; }\n`;
+  } else {
+    css += `.main-col .composer-inner { background: linear-gradient(135deg, rgba(20,24,36,${compOp}) 0%, rgba(35,20,50,${Math.max(0, compOp - 0.03)}) 100%) !important; }\n`;
   }
+  
+  css += `@media (min-width: 901px) { .main-col .chat-wrap, .main-col .composer-inner { max-width: ${compW}px !important; margin: 0 auto; } }\n`;
+  css += `@media (max-width: 900px) { .main-col .chat-wrap, .main-col .composer-inner { max-width: 100% !important; margin: 0 auto; } }\n`;
+  css += `.main-col .composer-inner textarea { min-height: ${compH}px !important; max-height: ${compH}px !important; }\n`;
   if (cfg.composerTxt) {
     const compT = getTxt(cfg.composerBg, cfg.autoText, cfg.composerTxt);
-    css += `.composer .tool-btn { color: ${compT} !important; border-color: ${compT} !important; }\n`;
-    css += `.composer .tool-btn svg { fill: ${compT} !important; }\n`;
-    css += `#ch-send { color: ${compT} !important; }\n`;
-    css += `#ch-send svg { fill: ${compT} !important; }\n`;
+    css += `.main-col .composer .tool-btn { color: ${compT} !important; border-color: ${compT} !important; }\n`;
+    css += `.main-col .composer .tool-btn svg { fill: ${compT} !important; }\n`;
+    css += `.main-col #ch-send { color: ${compT} !important; }\n`;
+    css += `.main-col #ch-send svg { fill: ${compT} !important; }\n`;
   }
   
   if (cfg.inputBg) {
-    css += `#ch-input { background: ${cfg.inputBg} !important; }\n`;
+    css += `.main-col #ch-input { background: ${cfg.inputBg} !important; }\n`;
   }
   if (cfg.inputTxt) {
     const inT = getTxt(cfg.inputBg, cfg.autoText, cfg.inputTxt);
-    css += `#ch-input { color: ${inT} !important; }\n`;
+    css += `.main-col #ch-input { color: ${inT} !important; }\n`;
   }
   if (cfg.inputHint) {
     const hintT = getTxt(cfg.inputBg, cfg.autoText, cfg.inputHint);
-    css += `#ch-input::placeholder { color: ${hintT} !important; opacity: 0.7; }\n`;
+    css += `.main-col #ch-input::placeholder { color: ${hintT} !important; opacity: 0.7; }\n`;
   }
   if (cfg.lineSpacing !== undefined || cfg.letterSpacing !== undefined) {
     const ls = cfg.lineSpacing ?? 1.5;
     const letS = cfg.letterSpacing ?? 0;
-    css += `.msg .txt { line-height: ${ls} !important; letter-spacing: ${letS}px !important; word-spacing: ${letS * 2}px !important; word-break: break-word !important; overflow-wrap: break-word !important; }\n`;
+    css += `.main-col .msg .txt { line-height: ${ls} !important; letter-spacing: ${letS}px !important; word-spacing: ${letS * 2}px !important; word-break: break-word !important; overflow-wrap: break-word !important; }\n`;
   }
   
   styleEl.innerHTML = css;
@@ -228,10 +241,7 @@ function paint(log, char, chat) {
     const isUser = m.role === "user";
     const who = isUser ? esc(pName) : esc(char.name);
     let contentText = m.swipes ? m.swipes[m.activeSwipe || 0] : m.content;
-    if (contentText) {
-      contentText = contentText.replace(/{{char}}/gi, cName).replace(/{{user}}/gi, pName);
-    }
-    const content = parseMessageMarkdown(contentText);
+    const content = parseMessageMarkdown(replaceMacros(contentText, cName, pName));
     const avName = isUser ? pName : char.name;
     const av = isUser
       ? `<div class="av" aria-hidden="true">${esc(avName.slice(0, 1).toUpperCase())}</div>`
@@ -476,7 +486,7 @@ async function doSend(log, input, sendBtn, char, isRegen = false, priorHistory =
       streamedText += chunk;
       targetMsg.content = streamedText;
       targetMsg.swipes[targetMsg.activeSwipe] = streamedText;
-      txtNode.innerHTML = parseMessageMarkdown(streamedText);
+      txtNode.innerHTML = parseMessageMarkdown(replaceMacros(streamedText, char.shortName || char.name, store.activePersona()?.name));
       const v = document.getElementById("main-view");
       if (v) v.scrollTop = v.scrollHeight;
     }

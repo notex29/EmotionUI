@@ -8,9 +8,16 @@ export function parseMessageMarkdown(text) {
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  // Ensure every single newline is treated as a separate paragraph
-  // CAI often has single newlines that should be separated, but don't break code blocks!
   let mdText = text;
+  const thinkBlocks = [];
+  mdText = mdText.replace(/<think>([\s\S]*?)(?:<\/think>|$)/gi, (match, content) => {
+    if (!content.trim()) return '';
+    const isClosed = /<\/think>/i.test(match);
+    const id = `__THINK_BLOCK_${thinkBlocks.length}__`;
+    thinkBlocks.push({ id, content, isClosed });
+    return `\n\n${id}\n\n`;
+  });
+
   if (!mdText.includes("\`\`\`")) {
     mdText = mdText.replace(/\n+/g, '\n\n');
   } else {
@@ -69,6 +76,14 @@ export function parseMessageMarkdown(text) {
     initialized = true;
   }
 
-  // Parse and return
-  return marked.parse(mdText);
+  let result = marked.parse(mdText);
+
+  for (const block of thinkBlocks) {
+    const innerHtml = marked.parse(block.content);
+    const isOpen = !block.isClosed ? "open" : "";
+    const detailsHtml = `<details class="think-box" ${isOpen}><summary>Thinking Process</summary><div class="think-content">${innerHtml}</div></details>`;
+    result = result.replace(new RegExp(`<p(?: [^>]+)?>\\s*${block.id}\\s*<\\/p>|${block.id}`, 'g'), detailsHtml);
+  }
+
+  return result;
 }

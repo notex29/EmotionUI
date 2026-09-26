@@ -4,7 +4,6 @@ import { fetchIntoSelect, samplingFields, normalizeSampling, readSampling } from
 import { fetchModels } from "../core/api_v2.js";
 import { FORMATTING_PRESETS } from "../core/presets.js";
 import { toast, announce } from "./toast.js";
-import { openDiscoverModal } from "./discover.js";
 import { esc } from "../core/utils.js";
 import { icons } from "./icons.js";
 
@@ -32,7 +31,6 @@ export function renderCharacterForm(main, go, existingId = null) {
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           <button id="cf-btn-file" class="tool-btn" type="button" aria-label="Upload photo or character card" title="Upload photo or card" style="background:var(--bg-3);color:#fff;"><span aria-hidden="true">${icons.download}</span><span class="lbl">Upload Image</span></button>
           <input id="cf-file" type="file" accept="image/png,image/jpeg,image/webp,.json" hidden />
-          <button id="cf-web" class="tool-btn" type="button" aria-label="Import a character card from a public website" title="Import from chub.ai or any card link"><span aria-hidden="true">${icons.globe}</span><span class="lbl">Import from web</span></button>
           <button id="cf-clear-av" class="tool-btn" type="button" aria-label="Remove character photo" title="Remove character photo" style="color:var(--txt-1)"><span aria-hidden="true">${icons.trash}</span><span class="lbl">Remove</span></button>
         </div>
       </div>
@@ -53,7 +51,6 @@ export function renderCharacterForm(main, go, existingId = null) {
     drawBody();
     main.querySelector("#cf-btn-file").addEventListener("click", () => main.querySelector("#cf-file").click());
     main.querySelector("#cf-file").addEventListener("change", onFile);
-    main.querySelector("#cf-web").addEventListener("click", onWebImport);
     main.querySelector("#cf-clear-av").addEventListener("click", () => { c.avatar = ""; shell(); });
     main.querySelector("#cf-save").addEventListener("click", onSave);
     main.querySelector("#cf-del")?.addEventListener("click", async () => {
@@ -85,20 +82,6 @@ export function renderCharacterForm(main, go, existingId = null) {
     } catch (err) { toast(err.message, "err"); }
   }
 
-  function onWebImport() {
-    try { collect(); } catch (e) { console.error("collect error", e); }
-    openDiscoverModal({
-      persist: false,
-      onImported: (picked) => {
-        if (!picked) return;
-        const av = c.avatar;
-        c = { ...c, ...picked, id: c.id || picked.id, avatar: picked.avatar || av };
-        toast(`“${c.name}” loaded from the web — review the fields, then save.`, "ok");
-        announce("Character card loaded. Review the fields, then save.");
-        shell();
-      },
-    });
-  }
 
   function drawBody() {
     const b = main.querySelector("#cf-body");

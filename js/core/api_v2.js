@@ -57,8 +57,11 @@ export async function chatCompletion({ baseUrl, apiKey, body }) {
   }
   const data = await res.json();
   const text = isRaw ? data?.choices?.[0]?.text?.trim() : data?.choices?.[0]?.message?.content?.trim();
-  if (!text) throw new Error("Empty reply from model.");
-  return text;
+  const reasoning = data?.choices?.[0]?.message?.reasoning_content?.trim();
+  let finalResult = text || "";
+  if (reasoning) finalResult = `<think>\n${reasoning}\n</think>\n\n${finalResult}`;
+  if (!finalResult) throw new Error("Empty reply from model.");
+  return finalResult;
 }
 
 export async function* streamChatCompletion({ baseUrl, apiKey, body }) {
@@ -85,6 +88,7 @@ export async function* streamChatCompletion({ baseUrl, apiKey, body }) {
   const reader = res.body.getReader();
   const decoder = new TextDecoder("utf-8");
   let buffer = "";
+  let wasReasoning = false;
   
   while (true) {
     const { done, value } = await reader.read();
@@ -103,8 +107,23 @@ export async function* streamChatCompletion({ baseUrl, apiKey, body }) {
       
       try {
         const data = JSON.parse(dataStr);
-        const chunk = isRaw ? data?.choices?.[0]?.text : data?.choices?.[0]?.delta?.content;
-        if (chunk) yield chunk;
+        const delta = isRaw ? data?.choices?.[0] : data?.choices?.[0]?.delta;
+        if (delta) {
+          if (delta.reasoning_content) {
+            if (!wasReasoning) {
+              yield "<think>\n";
+              wasReasoning = true;
+            }
+            yield delta.reasoning_content;
+          }
+          if (delta.content || delta.text) {
+            if (wasReasoning) {
+              yield "\n</think>\n";
+              wasReasoning = false;
+            }
+            yield delta.content || delta.text;
+          }
+        }
       } catch (e) {
         // Ignore incomplete JSON fragment parsing errors if they somehow occur
       }

@@ -1,7 +1,6 @@
 import { store } from "../core/store-idb.js";
-import { esc } from "../core/utils.js";
+import { esc, replaceMacros } from "../core/utils.js";
 import { icons } from "./icons.js";
-import { openDiscoverModal } from "./discover.js";
 
 export function renderHome(main, go) {
   const chars = store.characters;
@@ -17,7 +16,7 @@ export function renderHome(main, go) {
     <div class="search-row">
       <input id="h-q" type="text" placeholder="Search characters…" aria-label="Search characters" />
     </div>
-    <div id="h-grid" class="card-grid" role="list"></div>
+    <div id="h-grid" class="card-grid"></div>
   </div>`;
   const grid = main.querySelector("#h-grid");
   const count = main.querySelector("#h-count");
@@ -29,11 +28,11 @@ export function renderHome(main, go) {
       return;
     }
     grid.innerHTML = f.map((c) => `
-      <button class="char-card" role="listitem" data-id="${esc(c.id)}" aria-label="Chat with ${esc(c.name)}">
+      <button class="char-card" data-id="${esc(c.id)}" aria-label="Chat with ${esc(c.name)}">
         ${c.avatar ? `<img class="char-img" src="${c.avatar}" alt="" loading="lazy" />` : `<div class="char-img-fallback" aria-hidden="true">${esc((c.name || "?").slice(0, 1).toUpperCase())}</div>`}
         <span class="char-body">
           <span class="char-name">${esc(c.name || "Unnamed")}</span>
-          <span class="char-desc">${esc((c.creatorNotes || c.description || "No description.").slice(0, 180))}</span>
+          <span class="char-desc">${esc(replaceMacros(c.creatorNotes || c.description || "No description.", c.shortName || c.name, store.activePersona()?.name).slice(0, 180))}</span>
           <span class="char-tags">${String(c.tags || "").split(",").map((t) => t.trim()).filter(Boolean).slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</span>
         </span>
       </button>`).join("");
@@ -58,9 +57,7 @@ export function renderHome(main, go) {
   draw();
   main.querySelector("#h-q").addEventListener("input", (e) => draw(e.target.value));
   main.querySelector("#h-new").addEventListener("click", () => go.create());
-  main.querySelector("#h-browse").addEventListener("click", () => {
-    openDiscoverModal({ onImported: () => draw(main.querySelector("#h-q")?.value || "") });
-  });
+  main.querySelector("#h-browse").addEventListener("click", () => go.discover());
 }
 
 function openCharMenu(char, x, y, go) {
